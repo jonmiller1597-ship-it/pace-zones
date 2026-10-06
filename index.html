@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: a training sheet. Inputs, race summary strip, effort spectrum, then the zone table and track splits. Zones use one green ramp, light = easy, dark = fast. */
+/* Layout: a training sheet. Inputs, race summary strip, effort spectrum, then the zone table and track splits. Zones run cool to hot: blue = easy, red/magenta = fast. */
 :root {
   --bg: #f4f5f3;
   --surface: #ffffff;
@@ -27,8 +27,8 @@
   --muted: #5d6862;
   --line: #dfe3df;
   --accent: #2f7a55;
-  --z1: #d3e6dc; --z2: #b9d6c6; --z3: #9cc4ae; --z4: #84b39a;
-  --z5: #6a9f84; --z6: #538c70; --z7: #3d785c; --z8: #2b6448;
+  --z1: #4a8fd9; --z2: #1fa5a0; --z3: #3e9e4c; --z4: #9aae1e;
+  --z5: #e3a81a; --z6: #ec7a25; --z7: #d9412f; --z8: #a83a9e;
   --warn: #8a5300; --warn-bg: #fdf1dc;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
@@ -38,8 +38,8 @@
   :root:not([data-theme="light"]) {
     --bg: #101412; --surface: #171d1a; --head: #1c2320; --ink: #e6ece8; --muted: #97a39c; --line: #2a332f;
     --accent: #74cf9f;
-    --z1: #2c4a3b; --z2: #365a48; --z3: #426b56; --z4: #4f7d64;
-    --z5: #5e9075; --z6: #6fa487; --z7: #82b99a; --z8: #9bd0b1;
+    --z1: #6caaf0; --z2: #3cc6bb; --z3: #5cc06a; --z4: #bccf3c;
+    --z5: #f3c23e; --z6: #f7974b; --z7: #f2665b; --z8: #d066c6;
     --warn: #f0c070; --warn-bg: #2f2512;
     color-scheme: dark;
   }
@@ -47,8 +47,8 @@
 :root[data-theme="dark"] {
   --bg: #101412; --surface: #171d1a; --head: #1c2320; --ink: #e6ece8; --muted: #97a39c; --line: #2a332f;
   --accent: #74cf9f;
-  --z1: #2c4a3b; --z2: #365a48; --z3: #426b56; --z4: #4f7d64;
-  --z5: #5e9075; --z6: #6fa487; --z7: #82b99a; --z8: #9bd0b1;
+  --z1: #6caaf0; --z2: #3cc6bb; --z3: #5cc06a; --z4: #bccf3c;
+    --z5: #f3c23e; --z6: #f7974b; --z7: #f2665b; --z8: #d066c6;
   --warn: #f0c070; --warn-bg: #2f2512;
   color-scheme: dark;
 }
