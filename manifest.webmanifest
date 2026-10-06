@@ -1,0 +1,15 @@
+{
+  "name": "Pace Zone Calculator",
+  "short_name": "Pace Zones",
+  "description": "Training pace zones from a recent race and a goal race.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f3",
+  "theme_color": "#2b6448",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
