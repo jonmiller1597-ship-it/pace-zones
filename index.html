@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pace Zones</title>
-<meta name="description" content="Training pace zones from a recent race and a goal race.">
+<meta name="description" content="Phase-by-phase training paces that build from a recent race to a goal race.">
 <meta name="theme-color" content="#f4f5f3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101412" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: a training sheet. Inputs, race summary strip, effort spectrum, then the zone table and track splits. Zones run cool to hot: blue = easy, red/magenta = fast. */
+/* Layout: a training block sheet. Inputs, a summary strip with the timeline check, then the phase-by-phase pace grid, checkpoints and track splits. Zones run cool to hot: blue = easy, red/magenta = fast. */
 :root {
   --bg: #f4f5f3;
   --surface: #ffffff;
@@ -27,9 +27,12 @@
   --muted: #5d6862;
   --line: #dfe3df;
   --accent: #2f7a55;
+  --accent-soft: #e4f1ea;
   --z1: #4a8fd9; --z2: #1fa5a0; --z3: #3e9e4c; --z4: #9aae1e;
   --z5: #e3a81a; --z6: #ec7a25; --z7: #d9412f; --z8: #a83a9e;
+  --ok: #2f7a55; --ok-bg: #e4f1ea;
   --warn: #8a5300; --warn-bg: #fdf1dc;
+  --bad: #a8321f; --bad-bg: #fbe6e1;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -37,28 +40,35 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #101412; --surface: #171d1a; --head: #1c2320; --ink: #e6ece8; --muted: #97a39c; --line: #2a332f;
-    --accent: #74cf9f;
+    --accent: #74cf9f; --accent-soft: #1d3329;
     --z1: #6caaf0; --z2: #3cc6bb; --z3: #5cc06a; --z4: #bccf3c;
     --z5: #f3c23e; --z6: #f7974b; --z7: #f2665b; --z8: #d066c6;
+    --ok: #74cf9f; --ok-bg: #1d3329;
     --warn: #f0c070; --warn-bg: #2f2512;
+    --bad: #f39a89; --bad-bg: #3a1d18;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #101412; --surface: #171d1a; --head: #1c2320; --ink: #e6ece8; --muted: #97a39c; --line: #2a332f;
-  --accent: #74cf9f;
+  --accent: #74cf9f; --accent-soft: #1d3329;
   --z1: #6caaf0; --z2: #3cc6bb; --z3: #5cc06a; --z4: #bccf3c;
-    --z5: #f3c23e; --z6: #f7974b; --z7: #f2665b; --z8: #d066c6;
+  --z5: #f3c23e; --z6: #f7974b; --z7: #f2665b; --z8: #d066c6;
+  --ok: #74cf9f; --ok-bg: #1d3329;
   --warn: #f0c070; --warn-bg: #2f2512;
+  --bad: #f39a89; --bad-bg: #3a1d18;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--bg); color: var(--ink);
+  margin: 0; background: var(--bg); color: var(--ink);
   font-family: var(--font-body); font-size: 15px; line-height: 1.5;
-  padding-inline: 16px; padding-block: 28px 56px;
+  padding-top: calc(28px + env(safe-area-inset-top, 0px)); padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px; }
@@ -67,17 +77,17 @@ h1 {
   line-height: 0.95; margin: 0; text-transform: uppercase; text-wrap: balance;
 }
 h1 span { color: var(--accent); }
-.sub { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.sub { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
 
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
 .seg button {
   font: 600 12.5px/1 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase;
-  border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  border: 0; background: transparent; color: var(--muted); padding: 8px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap;
 }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-.seg button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel h2, .section h2 {
   font: 600 12.5px/1.2 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0;
@@ -88,18 +98,21 @@ h1 span { color: var(--accent); }
 .dot.goal { background: var(--accent); }
 .fields { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
 .field label { font-size: 12px; color: var(--muted); font-weight: 500; }
-select, input[type="text"], input[type="number"] {
+select, input[type="text"], input[type="number"], input[type="date"] {
   font: 500 16px/1.2 var(--font-body); color: var(--ink); background: var(--bg);
   border: 1px solid var(--line); border-radius: 7px; padding: 10px 11px; width: 100%; min-width: 0;
 }
+input[type="date"] { min-height: 42px; }
 input[type="text"] { font-family: var(--font-mono); }
-input.bad { border-color: #c4462a; }
+input.bad { border-color: var(--bad); }
 .custom { display: flex; gap: 8px; align-items: center; }
 .custom input { flex: 1; }
 .custom select { width: auto; }
 .readout { font-size: 13px; color: var(--muted); min-height: 1.5em; }
 .readout b { color: var(--ink); font-weight: 600; font-family: var(--font-mono); }
+
 .prof-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
 .prof-head p { margin: 0; font-size: 13px; color: var(--muted); }
 .prof-slider { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
@@ -113,96 +126,81 @@ input.bad { border-color: #c4462a; }
 }
 .prof-marks button::before { content: ""; display: block; width: 1px; height: 6px; background: var(--muted); margin: 0 auto 3px; }
 .prof-marks button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
-.prof-marks button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
 .prof-desc { font-size: 13.5px; }
 .prof-desc b { font-weight: 600; }
-@media (max-width: 640px) { .prof-marks { height: 46px; } .prof-marks button { font-size: 11px; white-space: normal; width: 62px; line-height: 1.2; }
-  .prof-marks button:nth-child(1) { transform: translateX(-66%); }
-  .prof-marks button:nth-child(2) { transform: translateX(-34%); } }
 
 .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .stat { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .stat .k { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .stat .v { font: 600 24px/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.stat .v small { font: 500 13px var(--font-body); color: var(--muted); margin-left: 2px; }
 .stat .v.goal { color: var(--accent); }
 .stat .n { font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; align-self: flex-start; font: 600 13px/1 var(--font-body); letter-spacing: 0.04em; padding: 6px 10px; border-radius: 999px; margin: 2px 0 3px; }
+.pill.ok { color: var(--ok); background: var(--ok-bg); }
+.pill.warn { color: var(--warn); background: var(--warn-bg); }
+.pill.bad { color: var(--bad); background: var(--bad-bg); }
 @media (max-width: 760px) { .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .note { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
 
 .section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
-
-.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 10px; }
-.chart svg { display: block; width: 100%; height: auto; }
-.chart text { font-family: var(--font-mono); fill: var(--muted); }
-.chart .rowlabel { font-family: var(--font-body); font-weight: 600; fill: var(--ink); }
-.chart .tick { stroke: var(--line); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); padding-top: 8px; }
-.legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.section-head p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 70ch; }
 
 .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
-tbody tr:last-child td { border-bottom: 0; }
-thead th { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--head); white-space: nowrap; }
-th.r, td.r { text-align: right; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+thead th { font-size: 12px; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--head); white-space: nowrap; vertical-align: bottom; }
 
-.zones td { font-size: 15.5px; }
-.zcell { display: flex; gap: 12px; align-items: flex-start; white-space: nowrap; }
-.zbar { width: 6px; height: 22px; border-radius: 3px; background: var(--zc); flex: none; margin-top: 1px; }
+/* Phase grid */
+.grid th.zone, .grid td.zone { position: sticky; left: 0; background: var(--surface); z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.grid thead th.zone { background: var(--head); text-transform: uppercase; letter-spacing: 0.1em; }
+.grid thead th.ph { text-align: right; min-width: 118px; }
+.ph-name { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink); }
+.ph-weeks { display: block; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.ph-dates { display: block; font-weight: 400; letter-spacing: 0; font-size: 11.5px; }
+.grid th.ph.taper, .grid td.taper { background: var(--accent-soft); }
+.grid th.ph.taper .ph-name { color: var(--accent); }
+.zcell { display: flex; gap: 10px; align-items: flex-start; white-space: nowrap; }
+.zbar { width: 6px; height: 20px; border-radius: 3px; background: var(--zc); flex: none; margin-top: 1px; }
 .zname { font-weight: 700; }
-.ztag { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--muted); margin-left: 5px; letter-spacing: 0.02em; }
-.effort { min-width: 190px; max-width: 30ch; }
-.pace { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pace.goal { color: var(--accent); }
-.pace.dim { color: var(--muted); font-weight: 500; }
+.ztag { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--muted); margin-left: 5px; }
+.goal-tag { display: inline-block; font: 600 10.5px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 6px; margin-left: 6px; vertical-align: 2px; }
+.grid td.p { text-align: right; font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grid td.p.same { color: var(--muted); font-weight: 500; }
+.grid td.p.goalpace { color: var(--accent); }
+.grid tr.goalrow td.zone { box-shadow: 1px 0 0 var(--line), inset 3px 0 0 var(--accent); }
+.legend-line { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.legend-line i { font-style: normal; font-family: var(--font-mono); font-weight: 500; }
 
-.two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; }
-@media (max-width: 840px) { .two { grid-template-columns: 1fr; } }
+.two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
 .small td, .small th { white-space: nowrap; padding: 11px 14px; }
 .small td:not(:first-child), .small th:not(:first-child) { text-align: right; }
 .small td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; font-size: 14.5px; }
 .small td:first-child { font-family: var(--font-body); color: var(--muted); }
-.small td.goalcol { color: var(--accent); }
-.small tr.target td { font-weight: 700; }
-.small tr.target td:first-child { color: var(--ink); }
+.small td:first-child b { color: var(--ink); font-weight: 600; display: block; }
+.small td.goalcol { color: var(--accent); font-weight: 600; }
+.small th.goalcol { color: var(--accent); }
+.small tr.race td { background: var(--accent-soft); }
 .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+#sp-phase { width: auto; font-size: 14px; padding: 7px 10px; }
 
-footer { color: var(--muted); font-size: 13px; max-width: 78ch; }
+footer { color: var(--muted); font-size: 13px; max-width: 80ch; }
 footer p { margin: 0 0 6px; }
 
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-[hidden] { display: none !important; }
-/* Phone: zone table becomes one card per zone */
 @media (max-width: 640px) {
   body { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
-  .zones thead { display: none; }
-  .zones, .zones tbody, .zones tr { display: block; }
-  .zones tr { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
-  .zones tbody tr:last-child { border-bottom: 0; }
-  .zones td { border: 0; padding: 0; font-size: 15px; }
-  .zones td:nth-child(1) { grid-column: 1 / -1; }
-  .zones td.effort { grid-column: 1 / -1; color: var(--muted); font-size: 13.5px; min-width: 0; max-width: none; margin: 2px 0 10px 18px; }
-  .zones td.r { text-align: left; }
-  .zones td:nth-child(3) { grid-column: 1; grid-row: 3; }
-  .zones td:nth-child(4) { grid-column: 1; grid-row: 4; }
-  .zones td:nth-child(5) { grid-column: 2; grid-row: 3; }
-  .zones td:nth-child(6) { grid-column: 2; grid-row: 4; }
-  .zones td:nth-child(n+3)::before { display: block; font: 600 10.5px/1.6 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .zones td:nth-child(3)::before { content: "Current"; }
-  .zones td:nth-child(5)::before { content: "Goal"; }
-  .zones td:nth-child(4), .zones td:nth-child(6) { font-size: 13px; white-space: nowrap; }
-  .zones td:nth-child(4) .pace, .zones td:nth-child(6) .pace { font-size: 13.5px; }
-  .zones td:nth-child(4) .pace, .zones td:nth-child(6) .pace { font-weight: 500; color: var(--muted); }
-  .zones td:nth-child(4) .pace:not(.dim)::after, .zones td:nth-child(6) .pace:not(.dim)::after { content: " per 400"; font-family: var(--font-body); font-size: 12px; }
-  .zones td:nth-child(4) .pace.dim, .zones td:nth-child(6) .pace.dim { display: none; }
-  .pace { font-size: 17px; }
+  .prof-marks { height: 46px; }
+  .prof-marks button { font-size: 11px; white-space: normal; width: 62px; line-height: 1.2; }
+  .prof-marks button:nth-child(1) { transform: translateX(-66%); }
+  .prof-marks button:nth-child(2) { transform: translateX(-34%); }
   .stat .v { font-size: 21px; }
+  th, td { padding: 10px 11px; }
+  .grid thead th.ph { min-width: 96px; }
+  .zname { font-size: 14px; }
+  .grid td.zone .ztag { display: none; }
 }
 </style>
 </head>
@@ -210,12 +208,13 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
 <div class="wrap">
   <header>
     <div>
-      <h1>Pace Zone <span>Calculator</span></h1>
-      <p class="sub">Enter a recent race and the race you're training for. Every zone is built from your race paces, for both where you are now and where your goal needs you to be.</p>
+      <h1>Pace <span>Progression</span></h1>
+      <p class="sub">Paces that build from where the athlete is today to what the goal race needs. Each phase trains at the fitness they should have by then, so goal paces arrive only once they've been earned.</p>
     </div>
     <div class="seg" role="group" aria-label="Pace units">
-      <button type="button" id="u-mi" data-unit="mi" aria-pressed="true">min / mi</button>
-      <button type="button" id="u-km" data-unit="km" aria-pressed="false">min / km</button>
+      <button type="button" data-unit="mi" aria-pressed="true">min / mi</button>
+      <button type="button" data-unit="km" aria-pressed="false">min / km</button>
+      <button type="button" data-unit="400" aria-pressed="false">per 400 m</button>
     </div>
   </header>
 
@@ -249,6 +248,10 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
           <label for="g-time">Goal time</label>
           <input id="g-time" type="text" inputmode="numeric" placeholder="h:mm:ss" autocomplete="off">
         </div>
+        <div class="field full">
+          <label for="g-date">Race date</label>
+          <input id="g-date" type="date">
+        </div>
       </div>
       <div class="custom" id="g-custom" hidden>
         <input id="g-cval" type="number" min="0.4" step="0.01" placeholder="Distance" aria-label="Custom goal distance">
@@ -272,47 +275,45 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     <div class="readout" id="p-read"></div>
   </section>
 
-  <section class="summary" aria-label="Race summary">
-    <div class="stat"><span class="k">Goal race today</span><span class="v mono" id="s-pred">–</span><span class="n" id="s-pred-n">Predicted from your recent race</span></div>
+  <section class="summary" aria-label="Block summary">
+    <div class="stat"><span class="k">Goal race today</span><span class="v mono" id="s-pred">–</span><span class="n" id="s-pred-n">Predicted from the recent race</span></div>
     <div class="stat"><span class="k">Goal time</span><span class="v goal mono" id="s-goal">–</span><span class="n" id="s-goal-n">&nbsp;</span></div>
-    <div class="stat"><span class="k">Time to find</span><span class="v mono" id="s-gap">–</span><span class="n" id="s-gap-n">&nbsp;</span></div>
-    <div class="stat"><span class="k">Pace gap</span><span class="v mono" id="s-pgap">–</span><span class="n" id="s-pgap-n">At goal race pace</span></div>
+    <div class="stat"><span class="k">Improvement needed</span><span class="v mono" id="s-gap">–</span><span class="n" id="s-gap-n">&nbsp;</span></div>
+    <div class="stat"><span class="k">Timeline</span><span class="pill" id="s-verdict">–</span><span class="n" id="s-verdict-n">&nbsp;</span></div>
   </section>
   <div class="note" id="note" hidden></div>
 
   <section class="section">
-    <h2>Training zones</h2>
+    <div class="section-head">
+      <h2>Paces by phase</h2>
+      <p>Move to the next column only after the athlete hits that phase's checkpoint, or when its workouts feel controlled. If they're behind, stay where they are.</p>
+    </div>
     <div class="table-wrap">
-      <table class="zones">
-        <thead><tr>
-          <th>Zone</th><th>Effort</th>
-          <th class="r" id="h-cur">Current /mi</th><th class="r">Current 400 m</th>
-          <th class="r" id="h-goal">Goal /mi</th><th class="r">Goal 400 m</th>
-        </tr></thead>
-        <tbody id="zones"></tbody>
+      <table class="grid">
+        <thead id="grid-head"></thead>
+        <tbody id="grid-body"></tbody>
       </table>
     </div>
-  </section>
-
-  <section class="section">
-    <div class="section-head">
-      <h2>Effort spectrum</h2>
-      <span class="legend" style="padding:0">Slower on the left, faster on the right</span>
-    </div>
-    <div class="chart">
-      <div id="chart"></div>
-      <div class="legend" id="legend"></div>
-    </div>
+    <div class="legend-line" id="grid-legend"></div>
   </section>
 
   <div class="two">
     <section class="section">
       <div class="section-head">
+        <h2>Checkpoints</h2>
+      </div>
+      <p class="sub" style="margin:0;font-size:13.5px">Race times that show the athlete is ready for the next phase. A tune-up race or time trial near each phase end is the cleanest test.</p>
+      <div class="table-wrap">
+        <table class="small">
+          <thead id="cp-head"></thead>
+          <tbody id="cp-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-head">
         <h2>Track splits</h2>
-        <div class="seg" role="group" aria-label="Splits fitness">
-          <button type="button" id="sp-now" data-sp="now" aria-pressed="true">Current</button>
-          <button type="button" id="sp-goal" data-sp="goal" aria-pressed="false">Goal</button>
-        </div>
+        <select id="sp-phase" aria-label="Phase for track splits"></select>
       </div>
       <div class="table-wrap">
         <table class="small">
@@ -321,26 +322,17 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
         </table>
       </div>
     </section>
-    <section class="section">
-      <h2>Equivalent race times</h2>
-      <div class="table-wrap">
-        <table class="small">
-          <thead><tr><th>Race</th><th>Current</th><th>Goal</th></tr></thead>
-          <tbody id="equiv"></tbody>
-        </table>
-      </div>
-    </section>
   </div>
 
   <footer>
-    <p>Race paces (mile through marathon) are equivalent performances to the race you enter, using Daniels' race-equivalence tables, then adjusted for the athlete profile slider. Moving it toward speed slows paces for distances longer than the race entered (and speed them up for shorter ones); moving it toward endurance does the opposite. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace, and easy is 20–32% slower.</p>
-    <p>A recent, all-out race on a flat course gives the best numbers. Heat, hills and wind push real paces slower. The example values are placeholders; replace them with your own.</p>
+    <p>How it works: the recent race sets today's fitness and the goal time sets the fitness needed on race day. Fitness is planned to improve evenly across the build, reaching goal level by the taper. Each phase trains at the fitness expected at its start, and each checkpoint is the fitness expected at its end.</p>
+    <p>Race paces use Daniels' race-equivalence tables, adjusted by the athlete profile slider. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace and easy is 20–32% slower. The timeline check is a rule of thumb: up to about 0.3% faster per week is realistic for most trained runners, and over 0.5% is aggressive.</p>
   </footer>
 </div>
 
 <script>
 (function () {
-  const MI = 1609.344;
+  const MI = 1609.344, DAY = 864e5;
   const DISTANCES = [
     { id: "1500", label: "1500 m", m: 1500 },
     { id: "mile", label: "Mile", m: MI },
@@ -356,25 +348,23 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     { id: "full", label: "Marathon", m: 42195 },
     { id: "custom", label: "Custom…", m: null }
   ];
-  const EQUIV = ["mile", "5k", "10k", "half", "full"];
+  const dist = id => DISTANCES.find(d => d.id === id);
+  const CHECK = ["mile", "5k", "10k", "half", "full"];
   const SPLITS = [
     { label: "200 m", m: 200 }, { label: "400 m", m: 400 }, { label: "600 m", m: 600 },
     { label: "800 m", m: 800 }, { label: "1000 m", m: 1000 }, { label: "1200 m", m: 1200 },
     { label: "Mile", m: MI }
   ];
-  // Each zone is a slow..fast pace (sec per meter) derived from race paces r = {mile, k5, k10, half, full}
+  // Each zone is a slow..fast pace (sec per meter) derived from race paces
   const ZONES = [
-    { key: "easy", name: "Easy", tag: "E", c: "--z1", effort: "Conversational, full sentences · RPE 3–4", no400: true,
-      f: r => [r.full * 1.32, r.full * 1.20] },
-    { key: "steady", name: "Steady", tag: "S", c: "--z2", effort: "Short sentences · RPE 5", no400: true,
-      f: r => [r.full * 1.13, r.full * 1.08] },
-    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", effort: "RPE 6", f: r => [r.full, r.full] },
-    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", effort: "RPE 7", f: r => [r.half, r.half] },
-    { key: "thr", name: "Threshold", tag: "T", c: "--z5", effort: "Comfortably hard · RPE 7–8",
-      f: r => [r.half, (r.half + r.k10) / 2] },
-    { key: "10k", name: "10K", tag: "10K", c: "--z6", effort: "RPE 8", f: r => [r.k10, r.k10] },
-    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", effort: "RPE 9", f: r => [r.k5, r.k5] },
-    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", effort: "Fast and relaxed, full recovery", f: r => [r.mile, r.mile] }
+    { key: "easy", name: "Easy", tag: "E", c: "--z1", f: r => [r.full * 1.32, r.full * 1.20] },
+    { key: "steady", name: "Steady", tag: "S", c: "--z2", f: r => [r.full * 1.13, r.full * 1.08] },
+    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", race: "full", f: r => [r.full, r.full] },
+    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", race: "half", f: r => [r.half, r.half] },
+    { key: "thr", name: "Threshold", tag: "T", c: "--z5", f: r => [r.half, (r.half + r.k10) / 2] },
+    { key: "10k", name: "10K", tag: "10K", c: "--z6", race: "10k", f: r => [r.k10, r.k10] },
+    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", race: "5k", f: r => [r.k5, r.k5] },
+    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", race: "mile", f: r => [r.mile, r.mile] }
   ];
 
   // Daniels & Gilbert race-equivalence model
@@ -392,25 +382,36 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   // Athlete profile: extra slowdown (or hold) per doubling of distance away from the race entered
   const K_MIN = -0.03, K_MAX = 0.06;
   const PROFILES = [
-    { k: -0.015, label: "Endurance runner", short: "Endurance", desc: "High mileage, less speed work. Holds pace well in long races." },
-    { k: 0, label: "Balanced", short: "Balanced", desc: "Trained for short and long races. Standard race equivalents." },
-    { k: 0.02, label: "Speed-leaning", short: "Speed-leaning", desc: "Strong at 5K–10K, limited half or full marathon experience." },
-    { k: 0.04, label: "New to long races", short: "New to long", desc: "First half or full marathon, or few long runs so far." }
+    { k: -0.015, label: "Endurance runner", desc: "High mileage, less speed work. Holds pace well in long races." },
+    { k: 0, label: "Balanced", desc: "Trained for short and long races. Standard race equivalents." },
+    { k: 0.02, label: "Speed-leaning", desc: "Strong at 5K–10K, limited half or full marathon experience." },
+    { k: 0.04, label: "New to long races", desc: "First half or full marathon, or few long runs so far." }
   ];
+
+  const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const defaultDate = () => isoDate(new Date(today().getTime() + 16 * 7 * DAY));
+
+  const state = load() || {
+    unit: "mi", k: 0, sp: 0,
+    r: { dist: "5k", time: "22:30", cval: "", cunit: "km" },
+    g: { dist: "half", time: "1:45:00", cval: "", cunit: "km", date: "" }
+  };
+  if (state.k === undefined) { const old = { endurance: -0.015, balanced: 0, speed: 0.02, "new": 0.04 }; state.k = old[state.profile] || 0; delete state.profile; }
+  if (!state.g.date) state.g.date = defaultDate();
+  if (typeof state.sp !== "number") state.sp = 0;
+  function load() { try { const s = JSON.parse(localStorage.getItem("pz-state")); return s && s.r && s.g ? s : null; } catch (e) { return null; } }
+  function save() { try { localStorage.setItem("pz-state", JSON.stringify(state)); } catch (e) {} }
+
   const kNow = () => Math.min(K_MAX, Math.max(K_MIN, Number(state.k) || 0));
   const predictFrom = (m, s) => predict(m, s.V) * Math.pow(m / s.m, kNow());
   const racePaces = s => {
-    const p = id => { const m = DISTANCES.find(d => d.id === id).m; return predictFrom(m, s) / m; };
+    const p = id => { const m = dist(id).m; return predictFrom(m, s) / m; };
     return { mile: p("mile"), k5: p("5k"), k10: p("10k"), half: p("half"), full: p("full") };
   };
-
-  const state = load() || {
-    unit: "mi", sp: "now", k: 0,
-    r: { dist: "5k", time: "22:30", cval: "", cunit: "km" },
-    g: { dist: "half", time: "1:45:00", cval: "", cunit: "km" }
-  };
-  function load() { try { const s = JSON.parse(localStorage.getItem("pz-state")); return s && s.r && s.g ? s : null; } catch (e) { return null; } }
-  function save() { try { localStorage.setItem("pz-state", JSON.stringify(state)); } catch (e) {} }
+  const zonesOf = s => { const r = racePaces(s); return ZONES.map(z => z.f(r)); };
+  // Blend two paces at fraction f by speed, so fitness changes evenly
+  const blend = (a, b, f) => 1 / ((1 - f) / a + f / b);
 
   const $ = id => document.getElementById(id);
   function fmt(sec, forceH) {
@@ -421,6 +422,18 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     return h || forceH ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
   const fmtRep = sec => sec < 100 ? Math.round(sec) + " s" : fmt(sec);
+  const fmtDay = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const unitLabel = () => state.unit === "400" ? "400 m" : state.unit;
+  function fmtPace(spm) { // sec per meter
+    if (state.unit === "400") return fmtRep(spm * 400);
+    return fmt(spm * (state.unit === "mi" ? MI : 1000));
+  }
+  function fmtRange(slow, fast) {
+    const a = fmtPace(fast), b = fmtPace(slow);
+    if (a === b) return a;
+    if (state.unit === "400" && a.endsWith(" s") && b.endsWith(" s")) return `${a.slice(0, -2)}–${b}`;
+    return `${a}–${b}`;
+  }
   function parseTime(str, meters) {
     str = (str || "").trim();
     if (!str) return null;
@@ -436,9 +449,8 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   function meters(side) {
     const s = state[side];
     if (s.dist === "custom") { const v = parseFloat(s.cval); return v > 0 ? v * (s.cunit === "mi" ? MI : 1000) : null; }
-    return DISTANCES.find(d => d.id === s.dist).m;
+    return dist(s.dist).m;
   }
-  const unitM = () => state.unit === "mi" ? MI : 1000;
 
   function side(prefix) {
     const m = meters(prefix);
@@ -450,73 +462,48 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     if (!m || !t) { read.textContent = !m ? "Enter a distance." : "Enter a time."; return null; }
     const V = scoreOf(m, t);
     if (!isFinite(V) || V < 15 || V > 90) { read.textContent = "That time looks out of range for this distance."; return null; }
-    read.innerHTML = `<b>${fmt(t / m * unitM())}</b> per ${state.unit} race pace`;
-    const r = racePaces({ m, V });
-    return { m, t, V, zones: ZONES.map(z => { const [slow, fast] = z.f(r); return { z, slow, fast, mid: (slow + fast) / 2 }; }) };
+    read.innerHTML = `<b>${fmt(t / m * MI)}</b> per mi · <b>${fmt(t / m * 1000)}</b> per km race pace`;
+    return { m, t, V };
+  }
+
+  // Split the time to race day into ~4-week build phases plus a taper
+  function plan(goalM) {
+    const t0 = today();
+    const [y, mo, d] = (state.g.date || "").split("-").map(Number);
+    const race = y ? new Date(y, mo - 1, d) : null;
+    if (!race || isNaN(race)) return { error: "Pick a race date." };
+    const days = Math.round((race - t0) / DAY);
+    if (days < 1) return { error: "The race date has passed. Pick a future date." };
+    // Work in whole weeks from today; the taper takes the last 1–3 weeks, rounded up to race day
+    const totalWeeks = Math.ceil(days / 7);
+    const taperWeeks = Math.min(totalWeeks, goalM >= 40000 ? 3 : goalM >= 20000 ? 2 : 1);
+    const buildWeeks = totalWeeks - taperWeeks, buildDays = buildWeeks * 7;
+    const at = n => new Date(t0.getTime() + n * DAY);
+    const wkRange = (a, b) => a === b ? `Wk ${a}` : `Wk ${a}–${b}`;
+    if (buildWeeks < 3) {
+      return { days, buildDays, short: true, phases: [{ name: "To race day", f: 0, fEnd: 0, taper: false,
+        weeks: wkRange(1, totalWeeks), dates: `${fmtDay(t0)} – ${fmtDay(race)}` }] };
+    }
+    const n = Math.min(6, Math.max(1, Math.round(buildWeeks / 4)));
+    const phases = [];
+    for (let i = 0; i < n; i++) {
+      const a = Math.round(i * buildWeeks / n), b = Math.round((i + 1) * buildWeeks / n);
+      phases.push({ name: `Phase ${i + 1}`, f: i / n, fEnd: (i + 1) / n, taper: false,
+        weeks: wkRange(a + 1, b), dates: `${fmtDay(at(a * 7))} – ${fmtDay(at(b * 7 - 1))}` });
+    }
+    phases.push({ name: "Taper + race", f: 1, fEnd: 1, taper: true,
+      weeks: wkRange(buildWeeks + 1, totalWeeks), dates: `${fmtDay(at(buildDays))} – ${fmtDay(race)}` });
+    return { days, buildDays, short: false, phases };
   }
 
   function render() {
-    const now = side("r"), goal = side("g");
-    const u = state.unit, U = unitM();
-    $("h-cur").textContent = `Current /${u}`;
-    $("h-goal").textContent = `Goal /${u}`;
-
+    const now = side("r"), goalIn = side("g");
+    const goalM = goalIn ? goalIn.m : meters("g");
+    const P = goalM ? plan(goalM) : { error: "Enter a goal race." };
     const note = $("note"); note.hidden = true;
-    if (goal) {
-      $("s-goal").textContent = fmt(goal.t, goal.m >= 21000);
-      $("s-goal-n").textContent = `${fmt(goal.t / goal.m * U)} per ${u}`;
-    } else { $("s-goal").textContent = "–"; $("s-goal-n").innerHTML = "&nbsp;"; }
-    if (now && goal) {
-      const pred = predictFrom(goal.m, now), diff = pred - goal.t;
-      $("s-pred").textContent = fmt(pred, goal.m >= 21000);
-      $("s-pred-n").textContent = `${fmt(pred / goal.m * U)} per ${u}`;
-      $("s-gap").textContent = (diff > 0 ? "−" : "+") + fmt(Math.abs(diff));
-      $("s-gap-n").textContent = diff > 0 ? `${(diff / pred * 100).toFixed(1)}% faster than today` : "Goal is within current fitness";
-      const pd = diff / goal.m * U;
-      $("s-pgap").innerHTML = `${diff > 0 ? "−" : "+"}${fmt(Math.abs(pd))}<small>/${u}</small>`;
-      if (diff / pred > 0.07) {
-        note.hidden = false;
-        note.textContent = `Your goal is ${(diff / pred * 100).toFixed(1)}% faster than what your recent race predicts. That's a big jump for one training block. Most runners do best training at current paces, then racing again to update them.`;
-      }
-    } else {
-      ["s-pred", "s-gap", "s-pgap"].forEach(id => $(id).textContent = "–");
-      $("s-gap-n").innerHTML = "&nbsp;";
-    }
+    const u = unitLabel();
 
-    const paceCell = (zp, cls) => {
-      if (!zp) return `<td class="r"><span class="pace ${cls}">–</span></td>`;
-      const s = zp.slow * U, f = zp.fast * U;
-      return `<td class="r"><span class="pace ${cls}">${Math.round(s) === Math.round(f) ? fmt(s) : `${fmt(f)}–${fmt(s)}`}</span></td>`;
-    };
-    const repCell = zp => {
-      if (!zp || zp.z.no400) return `<td class="r"><span class="pace dim">—</span></td>`;
-      const s = Math.round(zp.slow * 400), f = Math.round(zp.fast * 400);
-      return `<td class="r"><span class="pace">${s === f ? s : `${f}–${s}`} s</span></td>`;
-    };
-    $("zones").innerHTML = ZONES.map((z, i) => {
-      const a = now && now.zones[i], b = goal && goal.zones[i];
-      return `<tr style="--zc: var(${z.c})">
-        <td><div class="zcell"><i class="zbar"></i><span><span class="zname">${z.name}</span><span class="ztag">${z.tag}</span></span></div></td>
-        <td class="effort">${z.effort}</td>
-        ${paceCell(a, "")}${repCell(a)}${paceCell(b, "goal")}${repCell(b)}
-      </tr>`;
-    }).join("");
-
-    const src = state.sp === "goal" ? goal : now;
-    const mid = k => src && src.zones.find(x => x.z.key === k).mid;
-    $("splits").innerHTML = SPLITS.map(s => {
-      const c = k => src ? fmtRep(mid(k) * s.m) : "–";
-      return `<tr><td>${s.label}</td><td>${c("thr")}</td><td>${c("10k")}</td><td>${c("5k")}</td><td>${c("mile")}</td></tr>`;
-    }).join("");
-
-    $("equiv").innerHTML = EQUIV.map(id => {
-      const d = DISTANCES.find(x => x.id === id), longish = d.m >= 21000;
-      return `<tr class="${id === state.g.dist ? "target" : ""}"><td>${d.label}</td>
-        <td>${now ? fmt(predictFrom(d.m, now), longish) : "–"}</td>
-        <td class="goalcol">${goal ? fmt(predictFrom(d.m, goal), longish) : "–"}</td></tr>`;
-    }).join("");
-
-    const pr = $("p-read");
+    // profile readout
     const k = kNow();
     const exact = PROFILES.find(p => Math.abs(p.k - k) < 0.001);
     const lower = [...PROFILES].reverse().find(p => p.k < k), upper = PROFILES.find(p => p.k > k);
@@ -526,48 +513,118 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
       : !upper ? "<b>Very speed-dependent.</b> Fades in long races more than a typical first-time marathoner."
       : `<b>Between ${lower.label.toLowerCase()} and ${upper.label.toLowerCase()}.</b>`;
     document.querySelectorAll("[data-k]").forEach(b => b.setAttribute("aria-pressed", String(Math.abs(Number(b.dataset.k) - k) < 0.001)));
+    const pr = $("p-read");
     if (now && Math.abs(k) > 0.0001) {
-      const far = now.m < 15000 ? DISTANCES.find(d => d.id === "full") : DISTANCES.find(d => d.id === "5k");
+      const far = now.m < 15000 ? dist("full") : dist("5k");
       const base = predict(far.m, now.V), adj = predictFrom(far.m, now), d = adj - base;
-      pr.innerHTML = `${far.label} from this race: <b>${fmt(adj, far.m >= 21000)}</b>, ${fmt(Math.abs(d))} ${d > 0 ? "slower" : "faster"} than the standard equivalent.`;
+      pr.innerHTML = `${far.label} from the recent race: <b>${fmt(adj, far.m >= 21000)}</b>, ${fmt(Math.abs(d))} ${d > 0 ? "slower" : "faster"} than the standard equivalent.`;
     } else pr.textContent = "Uses the standard race-equivalence tables.";
 
-    drawChart(now, goal);
+    if (!P.error) $("g-read").innerHTML += ` · <b>${Math.floor(P.days / 7)}</b> wk <b>${P.days % 7}</b> d away`;
+    else if (goalIn) $("g-read").textContent = P.error;
+
+    // summary
+    let goal = goalIn, behind = true;
+    ["s-pred", "s-goal", "s-gap"].forEach(id => $(id).textContent = "–");
+    ["s-pred-n", "s-goal-n", "s-gap-n", "s-verdict-n"].forEach(id => $(id).innerHTML = "&nbsp;");
+    $("s-pred-n").textContent = "Predicted from the recent race";
+    const vEl = $("s-verdict"); vEl.className = "pill"; vEl.textContent = "–";
+    if (goalIn) {
+      $("s-goal").textContent = fmt(goalIn.t, goalIn.m >= 21000);
+      $("s-goal-n").textContent = `${fmt(goalIn.t / goalIn.m * MI)}/mi · ${fmt(goalIn.t / goalIn.m * 1000)}/km`;
+    }
+    if (now && goalIn) {
+      const T0 = predictFrom(goalIn.m, now), T1 = goalIn.t, gain = (T0 - T1) / T0;
+      $("s-pred").textContent = fmt(T0, goalIn.m >= 21000);
+      $("s-pred-n").textContent = `${fmt(T0 / goalIn.m * MI)}/mi · ${fmt(T0 / goalIn.m * 1000)}/km`;
+      if (gain <= 0) {
+        behind = false; goal = now;
+        $("s-gap").textContent = "None";
+        $("s-gap-n").textContent = `Already ${fmt(-gain * T0)} inside the goal`;
+        vEl.textContent = "On target"; vEl.classList.add("ok");
+        $("s-verdict-n").textContent = "Train at current paces throughout";
+      } else {
+        $("s-gap").textContent = "−" + fmt(T0 - T1);
+        $("s-gap-n").textContent = `${(gain * 100).toFixed(1)}% faster than today`;
+        if (!P.error) {
+          const wks = Math.max(P.buildDays, 1) / 7, rate = gain * 100 / wks;
+          const [label, cls] = P.short ? ["Not enough time", "bad"] : rate <= 0.3 ? ["Realistic", "ok"] : rate <= 0.5 ? ["Ambitious", "warn"] : ["Aggressive", "bad"];
+          vEl.textContent = label; vEl.classList.add(cls);
+          $("s-verdict-n").textContent = P.short ? "Under 3 weeks before the taper" : `${rate.toFixed(2)}% faster per week for ${Math.round(wks)} weeks`;
+          if (P.short) {
+            note.hidden = false;
+            note.textContent = "There's less than three weeks of build time, which isn't enough to change fitness much. Train at current paces and race by feel.";
+          } else if (rate > 0.5) {
+            const realistic = T0 * (1 - 0.003 * wks);
+            note.hidden = false;
+            note.textContent = `This goal asks for ${rate.toFixed(2)}% improvement per week, which few runners sustain. A realistic target for this date is around ${fmt(realistic, goalIn.m >= 21000)}. The plan below still builds toward your goal; watch the checkpoints closely.`;
+          }
+        }
+      }
+    }
+
+    renderGrid(now, goal, P, behind);
     save();
   }
 
-  function drawChart(now, goal) {
-    const host = $("chart"), U = unitM();
-    const W = Math.max(280, host.clientWidth);
-    const narrow = W < 520;
-    const rows = [{ label: "Current", d: now }, { label: "Goal", d: goal }].filter(r => r.d);
-    $("legend").innerHTML = ZONES.map(z => `<span><i style="background:var(${z.c})"></i>${z.name}</span>`).join("");
-    if (!rows.length) { host.innerHTML = `<p class="legend">Enter a race result to see your zones.</p>`; return; }
-    const all = rows.flatMap(r => r.d.zones.flatMap(z => [z.slow * U, z.fast * U]));
-    let slow = Math.max(...all), fast = Math.min(...all);
-    const pad = (slow - fast) * 0.03; slow += pad; fast -= pad;
-    const L = narrow ? 58 : 70, R = 8, rowH = narrow ? 30 : 36, gap = 12, top = 4, axisH = 24;
-    const H = top + rows.length * (rowH + gap) - gap + axisH + 6;
-    const x = p => L + (slow - p) / (slow - fast) * (W - L - R);
-    const span = slow - fast, step = [15, 30, 60, 120].find(s => (W - L - R) * s / span >= 56) || 120;
-    let svg = "";
-    for (let t = Math.ceil(fast / step) * step; t <= slow; t += step) {
-      const xx = x(t);
-      svg += `<line class="tick" x1="${xx}" x2="${xx}" y1="${top}" y2="${H - axisH}"/><text x="${xx}" y="${H - 6}" text-anchor="middle" font-size="11.5">${fmt(t)}</text>`;
+  function renderGrid(now, goal, P, behind) {
+    const head = $("grid-head"), body = $("grid-body");
+    const cpHead = $("cp-head"), cpBody = $("cp-body"), spl = $("splits"), spSel = $("sp-phase");
+    if (!now || P.error) {
+      head.innerHTML = ""; cpHead.innerHTML = ""; cpBody.innerHTML = ""; spl.innerHTML = ""; spSel.innerHTML = "";
+      body.innerHTML = `<tr><td style="padding:22px 16px;color:var(--muted)">${!now ? "Enter a recent race result to build the plan." : P.error}</td></tr>`;
+      $("grid-legend").textContent = "";
+      return;
     }
-    rows.forEach((r, i) => {
-      const y = top + i * (rowH + gap);
-      svg += `<text class="rowlabel" x="0" y="${y + rowH / 2 + 5}" font-size="13">${r.label}</text>`;
-      svg += `<rect x="${L}" y="${y + rowH / 2 - 1}" width="${W - L - R}" height="2" fill="var(--line)"/>`;
-      r.d.zones.forEach(z => {
-        const x1 = x(z.slow * U), x2 = x(z.fast * U), col = `var(${z.z.c})`;
-        if (x2 - x1 > 4) svg += `<rect x="${x1}" y="${y + 4}" width="${x2 - x1}" height="${rowH - 8}" rx="4" fill="${col}"/>`;
-        else svg += `<rect x="${(x1 + x2) / 2 - 2}" y="${y}" width="4" height="${rowH}" rx="2" fill="${col}"/>`;
-      });
+    const g = goal || now;
+    const Z0 = zonesOf(now), Z1 = zonesOf(g);
+    const phases = P.phases;
+    const goalRace = state.g.dist;
+
+    head.innerHTML = `<tr><th class="zone">Zone</th>${phases.map(p => `
+      <th class="ph ${p.taper ? "taper" : ""}"><span class="ph-name">${p.name}</span><span class="ph-weeks">${p.weeks}</span><span class="ph-dates">${p.dates}</span></th>`).join("")}</tr>`;
+
+    body.innerHTML = ZONES.map((z, i) => {
+      const isGoal = z.race && z.race === goalRace && goal;
+      let prev = null;
+      const cells = phases.map(p => {
+        const slow = blend(Z0[i][0], Z1[i][0], p.f), fast = blend(Z0[i][1], Z1[i][1], p.f);
+        const txt = fmtRange(slow, fast);
+        const same = prev !== null && prev === txt;
+        prev = txt;
+        const cls = ["p", p.taper ? "taper" : "", same ? "same" : "", isGoal && p.taper ? "goalpace" : ""].join(" ");
+        return `<td class="${cls}">${txt}</td>`;
+      }).join("");
+      return `<tr class="${isGoal ? "goalrow" : ""}" style="--zc: var(${z.c})">
+        <td class="zone"><div class="zcell"><i class="zbar"></i><span><span class="zname">${z.name}</span><span class="ztag">${z.tag}</span>${isGoal ? '<span class="goal-tag">Goal race</span>' : ""}</span></div></td>${cells}</tr>`;
+    }).join("");
+
+    $("grid-legend").innerHTML = `<span>Paces per <i>${unitLabel()}</i>.</span>` +
+      (behind && goal ? `<span>Grey means no change from the phase before.</span>` : `<span>The goal is within current fitness, so paces stay the same.</span>`);
+
+    // checkpoints: equivalent race times at each phase end
+    const eq0 = CHECK.map(id => predictFrom(dist(id).m, now)), eq1 = CHECK.map(id => predictFrom(dist(id).m, g));
+    cpHead.innerHTML = `<tr><th>When</th>${CHECK.map(id => `<th class="${id === goalRace ? "goalcol" : ""}">${dist(id).id === "half" ? "Half" : dist(id).label}</th>`).join("")}</tr>`;
+    const rows = [{ label: "Today", sub: "Current fitness", f: 0 }];
+    phases.filter(p => !p.taper).forEach((p, i, arr) => {
+      if (P.short) return;
+      const last = i === arr.length - 1;
+      rows.push({ label: `End of ${p.name.toLowerCase()}`, sub: p.dates.split(" – ")[1], f: p.fEnd, race: false, last });
     });
-    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Zone paces per ${state.unit}, current and goal">${svg}</svg>`;
+    if (!P.short) { const r = rows[rows.length - 1]; rows[rows.length - 1] = { ...r, sub: `${r.sub} · goal fitness`, race: true }; }
+    cpBody.innerHTML = rows.map(r => `<tr class="${r.race ? "race" : ""}"><td><b>${r.label}</b>${r.sub}</td>${CHECK.map((id, j) =>
+      `<td class="${id === goalRace ? "goalcol" : ""}">${fmt(blend(eq0[j], eq1[j], r.f), dist(id).m >= 21000)}</td>`).join("")}</tr>`).join("");
+
+    // splits for the chosen phase
+    const prevSel = Math.min(state.sp, phases.length - 1);
+    spSel.innerHTML = phases.map((p, i) => `<option value="${i}">${p.name} · ${p.weeks}</option>`).join("");
+    spSel.value = String(prevSel);
+    const ph = phases[prevSel];
+    const mid = key => { const i = ZONES.findIndex(z => z.key === key); return (blend(Z0[i][0], Z1[i][0], ph.f) + blend(Z0[i][1], Z1[i][1], ph.f)) / 2; };
+    spl.innerHTML = SPLITS.map(s => `<tr><td>${s.label}</td>${["thr", "10k", "5k", "mile"].map(key => `<td>${fmtRep(mid(key) * s.m)}</td>`).join("")}</tr>`).join("");
   }
 
+  // wire up
   function fillSelect(id, val) {
     const el = $(id);
     el.innerHTML = DISTANCES.map(d => `<option value="${d.id}">${d.label}</option>`).join("");
@@ -584,25 +641,24 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     $(p + "-cval").addEventListener("input", e => { state[p].cval = e.target.value; render(); });
     $(p + "-cunit").addEventListener("change", e => { state[p].cunit = e.target.value; render(); });
   });
-  function setPressed(attr, val) {
-    document.querySelectorAll(`[data-${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset[attr] === val)));
-  }
-  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { state.unit = b.dataset.unit; setPressed("unit", state.unit); render(); }));
-  document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", () => { state.sp = b.dataset.sp; setPressed("sp", state.sp); render(); }));
-  // Older saved state used named profiles
-  if (state.k === undefined) { const old = { endurance: -0.015, balanced: 0, speed: 0.02, "new": 0.04 }; state.k = old[state.profile] || 0; delete state.profile; }
+  $("g-date").value = state.g.date;
+  $("g-date").addEventListener("change", e => { state.g.date = e.target.value; render(); });
+  $("sp-phase").addEventListener("change", e => { state.sp = Number(e.target.value); render(); });
+
   const slider = $("p-k");
   slider.value = kNow();
   $("p-marks").innerHTML = PROFILES.map(p =>
-    `<button type="button" data-k="${p.k}" title="${p.label}" style="left:${(p.k - K_MIN) / (K_MAX - K_MIN) * 100}%">${p.label}</button>`).join("");
+    `<button type="button" data-k="${p.k}" style="left:${(p.k - K_MIN) / (K_MAX - K_MIN) * 100}%">${p.label}</button>`).join("");
   slider.addEventListener("input", () => { state.k = Number(slider.value); render(); });
   document.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { state.k = Number(b.dataset.k); slider.value = state.k; render(); }));
-  setPressed("unit", state.unit); setPressed("sp", state.sp);
-  let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+
+  function setPressed(val) { document.querySelectorAll("[data-unit]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.unit === val))); }
+  if (!["mi", "km", "400"].includes(state.unit)) state.unit = "mi";
+  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { state.unit = b.dataset.unit; setPressed(state.unit); render(); }));
+  setPressed(state.unit);
   render();
 })();
 </script>
-
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

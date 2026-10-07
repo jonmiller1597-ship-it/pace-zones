@@ -1,7 +1,7 @@
 {
   "name": "Pace Zone Calculator",
   "short_name": "Pace Zones",
-  "description": "Training pace zones from a recent race and a goal race.",
+  "description": "Phase-by-phase training paces that build from a recent race to a goal race.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
