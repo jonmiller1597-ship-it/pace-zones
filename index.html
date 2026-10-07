@@ -102,17 +102,23 @@ input.bad { border-color: #c4462a; }
 .readout b { color: var(--ink); font-weight: 600; font-family: var(--font-mono); }
 .prof-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
 .prof-head p { margin: 0; font-size: 13px; color: var(--muted); }
-.prof-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
-.prof-opts button {
-  text-align: left; font: inherit; color: var(--ink); cursor: pointer;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 2px;
+.prof-slider { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.prof-ends { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+#p-k { width: 100%; margin: 6px 0 0; accent-color: var(--ink); height: 28px; cursor: pointer; }
+.prof-marks { position: relative; height: 34px; }
+.prof-marks button {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font: 500 12px/1.25 var(--font-body); color: var(--muted); background: none; border: 0; padding: 4px 2px; cursor: pointer;
+  text-align: center; white-space: nowrap;
 }
-.prof-opts button b { font-weight: 600; font-size: 14.5px; }
-.prof-opts button span { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
-.prof-opts button[aria-pressed="true"] { background: var(--surface); border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.prof-opts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 640px) { .prof-opts { grid-template-columns: 1fr 1fr; } .prof-opts button span { font-size: 12px; } }
+.prof-marks button::before { content: ""; display: block; width: 1px; height: 6px; background: var(--muted); margin: 0 auto 3px; }
+.prof-marks button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+.prof-marks button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+.prof-desc { font-size: 13.5px; }
+.prof-desc b { font-weight: 600; }
+@media (max-width: 640px) { .prof-marks { height: 46px; } .prof-marks button { font-size: 11px; white-space: normal; width: 62px; line-height: 1.2; }
+  .prof-marks button:nth-child(1) { transform: translateX(-66%); }
+  .prof-marks button:nth-child(2) { transform: translateX(-34%); } }
 
 .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .stat { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -257,12 +263,12 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
       <h2>Athlete profile</h2>
       <p>How well does this runner hold pace as races get longer?</p>
     </div>
-    <div class="prof-opts" role="group" aria-label="Athlete profile">
-      <button type="button" id="p-endurance" data-prof="endurance" aria-pressed="false"><b>Endurance runner</b><span>High mileage, less speed work. Holds pace well in long races.</span></button>
-      <button type="button" id="p-balanced" data-prof="balanced" aria-pressed="true"><b>Balanced</b><span>Trained for short and long races. Standard race equivalents.</span></button>
-      <button type="button" id="p-speed" data-prof="speed" aria-pressed="false"><b>Speed-leaning</b><span>Strong at 5K–10K, limited half or full marathon experience.</span></button>
-      <button type="button" id="p-new" data-prof="new" aria-pressed="false"><b>New to long races</b><span>First half or full marathon, or few long runs so far.</span></button>
+    <div class="prof-slider">
+      <div class="prof-ends"><span>← More endurance</span><span>More speed →</span></div>
+      <input id="p-k" type="range" min="-0.03" max="0.06" step="0.0025" value="0" aria-label="Endurance to speed balance" aria-describedby="p-desc">
+      <div class="prof-marks" id="p-marks"></div>
     </div>
+    <div class="prof-desc" id="p-desc"></div>
     <div class="readout" id="p-read"></div>
   </section>
 
@@ -327,7 +333,7 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   </div>
 
   <footer>
-    <p>Race paces (mile through marathon) are equivalent performances to the race you enter, using Daniels' race-equivalence tables, then adjusted for the athlete profile. Speed-leaning and new-to-long-races profiles slow paces for distances longer than the race entered (and speed them up for shorter ones); the endurance profile does the opposite. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace, and easy is 20–32% slower.</p>
+    <p>Race paces (mile through marathon) are equivalent performances to the race you enter, using Daniels' race-equivalence tables, then adjusted for the athlete profile slider. Moving it toward speed slows paces for distances longer than the race entered (and speed them up for shorter ones); moving it toward endurance does the opposite. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace, and easy is 20–32% slower.</p>
     <p>A recent, all-out race on a flat course gives the best numbers. Heat, hills and wind push real paces slower. The example values are placeholders; replace them with your own.</p>
   </footer>
 </div>
@@ -384,15 +390,22 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     return ((lo + hi) / 2) * 60;
   }
   // Athlete profile: extra slowdown (or hold) per doubling of distance away from the race entered
-  const PROFILES = { endurance: -0.015, balanced: 0, speed: 0.02, "new": 0.04 };
-  const predictFrom = (m, s) => predict(m, s.V) * Math.pow(m / s.m, PROFILES[state.profile] || 0);
+  const K_MIN = -0.03, K_MAX = 0.06;
+  const PROFILES = [
+    { k: -0.015, label: "Endurance runner", short: "Endurance", desc: "High mileage, less speed work. Holds pace well in long races." },
+    { k: 0, label: "Balanced", short: "Balanced", desc: "Trained for short and long races. Standard race equivalents." },
+    { k: 0.02, label: "Speed-leaning", short: "Speed-leaning", desc: "Strong at 5K–10K, limited half or full marathon experience." },
+    { k: 0.04, label: "New to long races", short: "New to long", desc: "First half or full marathon, or few long runs so far." }
+  ];
+  const kNow = () => Math.min(K_MAX, Math.max(K_MIN, Number(state.k) || 0));
+  const predictFrom = (m, s) => predict(m, s.V) * Math.pow(m / s.m, kNow());
   const racePaces = s => {
     const p = id => { const m = DISTANCES.find(d => d.id === id).m; return predictFrom(m, s) / m; };
     return { mile: p("mile"), k5: p("5k"), k10: p("10k"), half: p("half"), full: p("full") };
   };
 
   const state = load() || {
-    unit: "mi", sp: "now", profile: "balanced",
+    unit: "mi", sp: "now", k: 0,
     r: { dist: "5k", time: "22:30", cval: "", cunit: "km" },
     g: { dist: "half", time: "1:45:00", cval: "", cunit: "km" }
   };
@@ -504,7 +517,16 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     }).join("");
 
     const pr = $("p-read");
-    if (now && state.profile !== "balanced") {
+    const k = kNow();
+    const exact = PROFILES.find(p => Math.abs(p.k - k) < 0.001);
+    const lower = [...PROFILES].reverse().find(p => p.k < k), upper = PROFILES.find(p => p.k > k);
+    $("p-desc").innerHTML =
+      exact ? `<b>${exact.label}.</b> ${exact.desc}`
+      : !lower ? "<b>Very strong endurance.</b> Holds pace in long races even better than a typical endurance runner."
+      : !upper ? "<b>Very speed-dependent.</b> Fades in long races more than a typical first-time marathoner."
+      : `<b>Between ${lower.label.toLowerCase()} and ${upper.label.toLowerCase()}.</b>`;
+    document.querySelectorAll("[data-k]").forEach(b => b.setAttribute("aria-pressed", String(Math.abs(Number(b.dataset.k) - k) < 0.001)));
+    if (now && Math.abs(k) > 0.0001) {
       const far = now.m < 15000 ? DISTANCES.find(d => d.id === "full") : DISTANCES.find(d => d.id === "5k");
       const base = predict(far.m, now.V), adj = predictFrom(far.m, now), d = adj - base;
       pr.innerHTML = `${far.label} from this race: <b>${fmt(adj, far.m >= 21000)}</b>, ${fmt(Math.abs(d))} ${d > 0 ? "slower" : "faster"} than the standard equivalent.`;
@@ -567,9 +589,15 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   }
   document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { state.unit = b.dataset.unit; setPressed("unit", state.unit); render(); }));
   document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", () => { state.sp = b.dataset.sp; setPressed("sp", state.sp); render(); }));
-  if (!(state.profile in PROFILES)) state.profile = "balanced";
-  document.querySelectorAll("[data-prof]").forEach(b => b.addEventListener("click", () => { state.profile = b.dataset.prof; setPressed("prof", state.profile); render(); }));
-  setPressed("unit", state.unit); setPressed("sp", state.sp); setPressed("prof", state.profile);
+  // Older saved state used named profiles
+  if (state.k === undefined) { const old = { endurance: -0.015, balanced: 0, speed: 0.02, "new": 0.04 }; state.k = old[state.profile] || 0; delete state.profile; }
+  const slider = $("p-k");
+  slider.value = kNow();
+  $("p-marks").innerHTML = PROFILES.map(p =>
+    `<button type="button" data-k="${p.k}" title="${p.label}" style="left:${(p.k - K_MIN) / (K_MAX - K_MIN) * 100}%">${p.label}</button>`).join("");
+  slider.addEventListener("input", () => { state.k = Number(slider.value); render(); });
+  document.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { state.k = Number(b.dataset.k); slider.value = state.k; render(); }));
+  setPressed("unit", state.unit); setPressed("sp", state.sp);
   let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 120); });
   render();
 })();
