@@ -104,7 +104,7 @@ input.bad { border-color: #c4462a; }
 .prof-head p { margin: 0; font-size: 13px; color: var(--muted); }
 .prof-slider { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
 .prof-ends { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-#p-k { width: 100%; margin: 6px 0 0; accent-color: var(--ink); height: 28px; cursor: pointer; }
+#p-k, .range { width: 100%; margin: 6px 0 0; accent-color: var(--ink); height: 28px; cursor: pointer; }
 .prof-marks { position: relative; height: 34px; }
 .prof-marks button {
   position: absolute; top: 0; transform: translateX(-50%);
@@ -115,6 +115,13 @@ input.bad { border-color: #c4462a; }
 .prof-marks button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
 .prof-marks button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
 .prof-desc { font-size: 13.5px; }
+.hr-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.hr-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.hr-row label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.hr-row .val { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.hr-row input[type="number"] { width: 5.2em; padding: 6px 8px; font-family: var(--font-mono); text-align: right; }
+.hr-row b { font: 600 15px var(--font-mono); color: var(--ink); }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
 .prof-desc b { font-weight: 600; }
 @media (max-width: 640px) { .prof-marks { height: 46px; } .prof-marks button { font-size: 11px; white-space: normal; width: 62px; line-height: 1.2; }
   .prof-marks button:nth-child(1) { transform: translateX(-66%); }
@@ -196,6 +203,8 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   .zones td:nth-child(n+3)::before { display: block; font: 600 10.5px/1.6 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .zones td:nth-child(3)::before { content: "Current"; }
   .zones td:nth-child(5)::before { content: "Goal"; }
+  .zones td:nth-child(7) { grid-column: 1 / -1; grid-row: 5; margin-top: 10px; }
+  .zones td:nth-child(7)::before { content: "Heart rate (current)"; }
   .zones td:nth-child(4), .zones td:nth-child(6) { font-size: 13px; white-space: nowrap; }
   .zones td:nth-child(4) .pace, .zones td:nth-child(6) .pace { font-size: 13.5px; }
   .zones td:nth-child(4) .pace, .zones td:nth-child(6) .pace { font-weight: 500; color: var(--muted); }
@@ -211,7 +220,7 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   <header>
     <div>
       <h1>Pace Zone <span>Calculator</span></h1>
-      <p class="sub">Enter a recent race and the race you're training for. Every zone is built from your race paces, for both where you are now and where your goal needs you to be.</p>
+      <p class="sub">Enter a recent race and the race you're training for. Every zone is built from your race paces, for both where you are now and where your goal needs you to be. Add heart rate from a steady run to fine-tune the aerobic zones.</p>
     </div>
     <div class="seg" role="group" aria-label="Pace units">
       <button type="button" id="u-mi" data-unit="mi" aria-pressed="true">min / mi</button>
@@ -272,6 +281,53 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     <div class="readout" id="p-read"></div>
   </section>
 
+  <section class="panel" aria-label="Heart rate">
+    <div class="prof-head">
+      <h2>Heart rate</h2>
+      <div class="seg" role="group" aria-label="Use heart rate">
+        <button type="button" data-hr="off" aria-pressed="true">Off</button>
+        <button type="button" data-hr="on" aria-pressed="false">On</button>
+      </div>
+    </div>
+    <p class="hint" id="hr-off">Add the average heart rate from a steady run to check your race against your aerobic fitness, and to get a heart-rate range for each zone.</p>
+    <div id="hr-body" hidden>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <p class="hint">Use a steady 20–40 minute run on flat ground, not intervals or a race. Average heart rate for the whole run, and the pace you held. A few beats changes the estimate a lot, so average several similar runs if you can.</p>
+        <div class="hr-fields">
+          <div class="field">
+            <label for="hr-pace" id="hr-pace-l">Run pace /mi</label>
+            <input id="hr-pace" type="text" inputmode="numeric" placeholder="m:ss" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="hr-max">Max HR</label>
+            <input id="hr-max" type="number" inputmode="numeric" min="120" max="230" step="1">
+          </div>
+          <div class="field">
+            <label for="hr-rest">Resting HR</label>
+            <input id="hr-rest" type="number" inputmode="numeric" min="30" max="110" step="1">
+          </div>
+        </div>
+        <div class="field">
+          <div class="hr-row">
+            <label for="hr-avg">Average heart rate at that pace</label>
+            <span class="val"><input id="hr-avg-n" type="number" inputmode="numeric" min="80" max="220" step="1" aria-label="Average heart rate, bpm">bpm</span>
+          </div>
+          <input id="hr-avg" class="range" type="range" min="80" max="210" step="1" aria-label="Average heart rate slider">
+        </div>
+        <div class="field">
+          <div class="hr-row">
+            <label for="hr-w">How much heart rate moves the aerobic zones</label>
+            <b id="hr-w-v"></b>
+          </div>
+          <input id="hr-w" class="range" type="range" min="0" max="1" step="0.05">
+          <div class="prof-ends"><span>← Race only</span><span>Mostly heart rate →</span></div>
+        </div>
+        <div class="prof-desc" id="hr-desc"></div>
+        <div class="readout" id="hr-read"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="summary" aria-label="Race summary">
     <div class="stat"><span class="k">Goal race today</span><span class="v mono" id="s-pred">–</span><span class="n" id="s-pred-n">Predicted from your recent race</span></div>
     <div class="stat"><span class="k">Goal time</span><span class="v goal mono" id="s-goal">–</span><span class="n" id="s-goal-n">&nbsp;</span></div>
@@ -288,6 +344,7 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
           <th>Zone</th><th>Effort</th>
           <th class="r" id="h-cur">Current /mi</th><th class="r">Current 400 m</th>
           <th class="r" id="h-goal">Goal /mi</th><th class="r">Goal 400 m</th>
+          <th class="r" id="h-hr" hidden>Heart rate</th>
         </tr></thead>
         <tbody id="zones"></tbody>
       </table>
@@ -334,6 +391,7 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
 
   <footer>
     <p>Race paces (mile through marathon) are equivalent performances to the race you enter, using Daniels' race-equivalence tables, then adjusted for the athlete profile slider. Moving it toward speed slows paces for distances longer than the race entered (and speed them up for shorter ones); moving it toward endurance does the opposite. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace, and easy is 20–32% slower.</p>
+    <p>Heart rate: the run's average heart rate, as a share of heart-rate reserve (max minus resting), is taken as the same share of aerobic capacity (Swain's %HRR ≈ %VO2 reserve). That gives an aerobic fitness estimate from heart rate, limited to within 8% of the race score because one run is a noisy reading. The slider blends it into easy and steady paces fully, marathon pace at 75%, half marathon and threshold at 50%, 10K at 25%, and leaves 5K and mile paces to the race alone, since a steady run says little about speed. The heart-rate column is the heart rate this model expects at each current-fitness zone pace. 5K and mile reps are too short for heart rate to catch up, so they have none. Heat, hills, dehydration and cardiac drift on runs past about 40 minutes all raise heart rate at a given pace.</p>
     <p>A recent, all-out race on a flat course gives the best numbers. Heat, hills and wind push real paces slower. The example values are placeholders; replace them with your own.</p>
   </footer>
 </div>
@@ -362,19 +420,20 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     { label: "800 m", m: 800 }, { label: "1000 m", m: 1000 }, { label: "1200 m", m: 1200 },
     { label: "Mile", m: MI }
   ];
+  // hw: how much of the heart-rate fitness estimate a zone takes (aerobic zones most, speed zones none)
   // Each zone is a slow..fast pace (sec per meter) derived from race paces r = {mile, k5, k10, half, full}
   const ZONES = [
-    { key: "easy", name: "Easy", tag: "E", c: "--z1", effort: "Conversational, full sentences · RPE 3–4", no400: true,
+    { key: "easy", name: "Easy", tag: "E", c: "--z1", effort: "Conversational, full sentences · RPE 3–4", no400: true, hw: 1,
       f: r => [r.full * 1.32, r.full * 1.20] },
-    { key: "steady", name: "Steady", tag: "S", c: "--z2", effort: "Short sentences · RPE 5", no400: true,
+    { key: "steady", name: "Steady", tag: "S", c: "--z2", effort: "Short sentences · RPE 5", no400: true, hw: 1,
       f: r => [r.full * 1.13, r.full * 1.08] },
-    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", effort: "RPE 6", f: r => [r.full, r.full] },
-    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", effort: "RPE 7", f: r => [r.half, r.half] },
-    { key: "thr", name: "Threshold", tag: "T", c: "--z5", effort: "Comfortably hard · RPE 7–8",
+    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", effort: "RPE 6", hw: 0.75, f: r => [r.full, r.full] },
+    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", effort: "RPE 7", hw: 0.5, f: r => [r.half, r.half] },
+    { key: "thr", name: "Threshold", tag: "T", c: "--z5", effort: "Comfortably hard · RPE 7–8", hw: 0.5,
       f: r => [r.half, (r.half + r.k10) / 2] },
-    { key: "10k", name: "10K", tag: "10K", c: "--z6", effort: "RPE 8", f: r => [r.k10, r.k10] },
-    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", effort: "RPE 9", f: r => [r.k5, r.k5] },
-    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", effort: "Fast and relaxed, full recovery", f: r => [r.mile, r.mile] }
+    { key: "10k", name: "10K", tag: "10K", c: "--z6", effort: "RPE 8", hw: 0.25, f: r => [r.k10, r.k10] },
+    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", effort: "RPE 9", hw: 0, noHR: true, f: r => [r.k5, r.k5] },
+    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", effort: "Fast and relaxed, full recovery", hw: 0, noHR: true, f: r => [r.mile, r.mile] }
   ];
 
   // Daniels & Gilbert race-equivalence model
@@ -404,8 +463,32 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     return { mile: p("mile"), k5: p("5k"), k10: p("10k"), half: p("half"), full: p("full") };
   };
 
+  // Heart rate: %HRR ≈ %VO2 reserve (Swain & Leutholtz 1997), so one steady run's pace and
+  // average HR give an aerobic fitness score on the same scale as the race score.
+  function hrModel() {
+    const h = state.hr;
+    const sp = parseTime(h.pace, 0), bad = Number.isNaN(sp);
+    $("hr-pace").classList.toggle("bad", bad);
+    if (!h.on) return null;
+    const max = Number(h.max), rest = Number(h.rest), avg = Number(h.avg);
+    if (bad || !sp) return { err: "Enter the run's pace as m:ss, for example 9:30." };
+    if (!(max >= 120 && max <= 230)) return { err: "Enter a max heart rate between 120 and 230." };
+    if (!(rest >= 30 && rest <= max - 50)) return { err: "Enter a resting heart rate at least 50 below max." };
+    if (!(avg > rest && avg < max)) return { err: "Average heart rate must be between resting and max." };
+    const pct = (avg - rest) / (max - rest);
+    if (pct < 0.4) return { err: "That run is under 40% of heart-rate reserve, too easy to read fitness from. Use a steadier run." };
+    if (pct > 0.95) return { err: "That heart rate is close to max. Use a steady aerobic run, not a race or intervals." };
+    const spm = sp / (h.punit === "mi" ? MI : 1000);
+    const V = 3.5 + (vo2(60 / spm) - 3.5) / pct;
+    if (!isFinite(V) || V < 15 || V > 90) return { err: "That pace and heart rate don't fit together. Check the numbers." };
+    const hrAt = s => Math.min(max, rest + (max - rest) * (vo2(60 / s) - 3.5) / (V - 3.5));
+    return { V, pct, hrAt };
+  }
+  const HR_CAP = 0.08;
+  const hrW = () => Math.min(1, Math.max(0, Number(state.hr.w) || 0));
+
   const state = load() || {
-    unit: "mi", sp: "now", k: 0,
+    unit: "mi", sp: "now", k: 0, hr: null,
     r: { dist: "5k", time: "22:30", cval: "", cunit: "km" },
     g: { dist: "half", time: "1:45:00", cval: "", cunit: "km" }
   };
@@ -440,7 +523,7 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   }
   const unitM = () => state.unit === "mi" ? MI : 1000;
 
-  function side(prefix) {
+  function side(prefix, hr) {
     const m = meters(prefix);
     const t = parseTime(state[prefix].time, m || 0);
     const bad = Number.isNaN(t);
@@ -452,11 +535,27 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     if (!isFinite(V) || V < 15 || V > 90) { read.textContent = "That time looks out of range for this distance."; return null; }
     read.innerHTML = `<b>${fmt(t / m * unitM())}</b> per ${state.unit} race pace`;
     const r = racePaces({ m, V });
-    return { m, t, V, zones: ZONES.map(z => { const [slow, fast] = z.f(r); return { z, slow, fast, mid: (slow + fast) / 2 }; }) };
+    // One steady run is a noisy reading, so it may pull at most HR_CAP away from the race score
+    const Vh = hr && hr.V ? Math.min(V * (1 + HR_CAP), Math.max(V * (1 - HR_CAP), hr.V)) : null;
+    const rh = Vh ? racePaces({ m, V: Vh }) : null, w = hrW();
+    const zones = ZONES.map(z => {
+      const [s0, f0] = z.f(r);
+      let slow = s0, fast = f0;
+      if (rh) { const [s1, f1] = z.f(rh), a = w * z.hw; slow = s0 + (s1 - s0) * a; fast = f0 + (f1 - f0) * a; }
+      return { z, slow, fast, base: (s0 + f0) / 2 };
+    });
+    // Keep zones in order: none may end up faster than the zone above it
+    for (let i = zones.length - 2; i >= 0; i--) {
+      zones[i].slow = Math.max(zones[i].slow, zones[i + 1].slow);
+      zones[i].fast = Math.max(zones[i].fast, zones[i + 1].fast);
+    }
+    zones.forEach(x => x.mid = (x.slow + x.fast) / 2);
+    return { m, t, V, capped: Vh !== null && Vh !== hr.V, zones };
   }
 
   function render() {
-    const now = side("r"), goal = side("g");
+    const hrm = hrModel(), hr = hrm && hrm.V ? hrm : null;
+    const now = side("r", hr), goal = side("g");
     const u = state.unit, U = unitM();
     $("h-cur").textContent = `Current /${u}`;
     $("h-goal").textContent = `Goal /${u}`;
@@ -493,12 +592,19 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
       const s = Math.round(zp.slow * 400), f = Math.round(zp.fast * 400);
       return `<td class="r"><span class="pace">${s === f ? s : `${f}–${s}`} s</span></td>`;
     };
+    const hrCell = zp => {
+      if (!state.hr.on) return `<td class="r" hidden></td>`;
+      if (!zp || !hr || zp.z.noHR) return `<td class="r"><span class="pace dim">—</span></td>`;
+      const lo = Math.round(hr.hrAt(zp.slow)), hi = Math.round(hr.hrAt(zp.fast));
+      return `<td class="r"><span class="pace">${lo === hi ? lo : `${lo}–${hi}`} bpm</span></td>`;
+    };
+    $("h-hr").hidden = !state.hr.on;
     $("zones").innerHTML = ZONES.map((z, i) => {
       const a = now && now.zones[i], b = goal && goal.zones[i];
       return `<tr style="--zc: var(${z.c})">
         <td><div class="zcell"><i class="zbar"></i><span><span class="zname">${z.name}</span><span class="ztag">${z.tag}</span></span></div></td>
         <td class="effort">${z.effort}</td>
-        ${paceCell(a, "")}${repCell(a)}${paceCell(b, "goal")}${repCell(b)}
+        ${paceCell(a, "")}${repCell(a)}${paceCell(b, "goal")}${repCell(b)}${hrCell(a)}
       </tr>`;
     }).join("");
 
@@ -532,8 +638,33 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
       pr.innerHTML = `${far.label} from this race: <b>${fmt(adj, far.m >= 21000)}</b>, ${fmt(Math.abs(d))} ${d > 0 ? "slower" : "faster"} than the standard equivalent.`;
     } else pr.textContent = "Uses the standard race-equivalence tables.";
 
+    renderHR(hrm, now);
     drawChart(now, goal);
     save();
+  }
+
+  function renderHR(hrm, now) {
+    const on = state.hr.on;
+    $("hr-body").hidden = !on; $("hr-off").hidden = on;
+    setPressed("hr", on ? "on" : "off");
+    $("hr-pace-l").textContent = `Run pace /${state.hr.punit}`;
+    $("hr-w-v").textContent = Math.round(hrW() * 100) + "%";
+    const desc = $("hr-desc"), read = $("hr-read");
+    if (!on) return;
+    if (!hrm || hrm.err) { desc.innerHTML = ""; read.textContent = hrm ? hrm.err : ""; return; }
+    const k5 = predict(5000, hrm.V);
+    const pctTxt = `That run was at <b>${Math.round(hrm.pct * 100)}%</b> of heart-rate reserve.`;
+    if (!now) { desc.innerHTML = ""; read.innerHTML = `${pctTxt} Aerobic fitness from heart rate matches about a <b>${fmt(k5)}</b> 5K.`; return; }
+    const d = hrm.V - now.V, rel = d / now.V;
+    desc.innerHTML = Math.abs(rel) < 0.02
+      ? "<b>Heart rate agrees with your race.</b> Aerobic zones barely move."
+      : d < 0
+      ? "<b>Aerobic fitness trails your race.</b> Common for speed-leaning runners or after time away from mileage. Easy and steady paces move slower."
+      : "<b>Aerobic fitness is ahead of your race.</b> Your race may undersell you, or it was on a hot or hilly day. Easy and steady paces move faster.";
+    const easy = now.zones[0], shift = (easy.mid - easy.base) * unitM();
+    const shiftTxt = Math.abs(shift) < 0.5 ? "" : ` Easy pace moves <b>${Math.round(Math.abs(shift))} s/${state.unit}</b> ${shift > 0 ? "slower" : "faster"}.`;
+    const capTxt = now.capped ? ` That's far from your race, so it only counts up to ${HR_CAP * 100}% of the race score. Check the numbers or average a few runs.` : "";
+    read.innerHTML = `${pctTxt} Heart rate matches about a <b>${fmt(k5)}</b> 5K; your race says <b>${fmt(predict(5000, now.V))}</b>.${shiftTxt}${capTxt}`;
   }
 
   function drawChart(now, goal) {
@@ -587,7 +718,17 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
   function setPressed(attr, val) {
     document.querySelectorAll(`[data-${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset[attr] === val)));
   }
-  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => { state.unit = b.dataset.unit; setPressed("unit", state.unit); render(); }));
+  document.querySelectorAll("[data-unit]").forEach(b => b.addEventListener("click", () => {
+    state.unit = b.dataset.unit; setPressed("unit", state.unit);
+    // Keep the heart-rate run pace in the display unit
+    const sp = parseTime(state.hr.pace, 0);
+    if (sp > 0 && state.hr.punit !== state.unit) {
+      state.hr.pace = fmt(sp / (state.hr.punit === "mi" ? MI : 1000) * unitM());
+      $("hr-pace").value = state.hr.pace;
+    }
+    state.hr.punit = state.unit;
+    render();
+  }));
   document.querySelectorAll("[data-sp]").forEach(b => b.addEventListener("click", () => { state.sp = b.dataset.sp; setPressed("sp", state.sp); render(); }));
   // Older saved state used named profiles
   if (state.k === undefined) { const old = { endurance: -0.015, balanced: 0, speed: 0.02, "new": 0.04 }; state.k = old[state.profile] || 0; delete state.profile; }
@@ -597,6 +738,17 @@ body { margin: 0; padding-top: calc(28px + env(safe-area-inset-top, 0px)); paddi
     `<button type="button" data-k="${p.k}" title="${p.label}" style="left:${(p.k - K_MIN) / (K_MAX - K_MIN) * 100}%">${p.label}</button>`).join("");
   slider.addEventListener("input", () => { state.k = Number(slider.value); render(); });
   document.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { state.k = Number(b.dataset.k); slider.value = state.k; render(); }));
+  if (!state.hr) state.hr = { on: false, pace: state.unit === "km" ? "5:55" : "9:30", punit: state.unit, avg: 145, max: 190, rest: 55, w: 0.5 };
+  const H = state.hr;
+  $("hr-pace").value = H.pace; $("hr-max").value = H.max; $("hr-rest").value = H.rest;
+  $("hr-avg").value = H.avg; $("hr-avg-n").value = H.avg; $("hr-w").value = hrW();
+  document.querySelectorAll("[data-hr]").forEach(b => b.addEventListener("click", () => { H.on = b.dataset.hr === "on"; render(); }));
+  $("hr-pace").addEventListener("input", e => { H.pace = e.target.value; H.punit = state.unit; render(); });
+  $("hr-max").addEventListener("input", e => { H.max = e.target.value; render(); });
+  $("hr-rest").addEventListener("input", e => { H.rest = e.target.value; render(); });
+  $("hr-avg").addEventListener("input", e => { H.avg = Number(e.target.value); $("hr-avg-n").value = H.avg; render(); });
+  $("hr-avg-n").addEventListener("input", e => { H.avg = e.target.value; if (e.target.value) $("hr-avg").value = e.target.value; render(); });
+  $("hr-w").addEventListener("input", e => { H.w = Number(e.target.value); render(); });
   setPressed("unit", state.unit); setPressed("sp", state.sp);
   let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 120); });
   render();
