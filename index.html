@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pace Zones</title>
-<meta name="description" content="Phase-by-phase training paces that build from a recent race to a goal race.">
+<meta name="description" content="Training pace zones from a recent race, with a check on the goal race.">
 <meta name="theme-color" content="#f4f5f3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101412" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: a training block sheet. Inputs, a summary strip with the timeline check, then the phase-by-phase pace grid, checkpoints and track splits. Zones run cool to hot: blue = easy, red/magenta = fast. */
+/* Layout: a training sheet. Inputs, a summary strip with the timeline check, then the zone table, equivalent race times and track splits. Zones run cool to hot: blue = easy, red/magenta = fast. */
 :root {
   --bg: #f4f5f3;
   --surface: #ffffff;
@@ -137,26 +137,17 @@ th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--li
 tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 thead th { font-size: 12px; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--head); white-space: nowrap; vertical-align: bottom; }
 
-/* Phase grid */
-.grid th.zone, .grid td.zone { position: sticky; left: 0; background: var(--surface); z-index: 1; box-shadow: 1px 0 0 var(--line); }
-.grid thead th.zone { background: var(--head); text-transform: uppercase; letter-spacing: 0.1em; }
-.grid thead th.ph { text-align: right; min-width: 118px; }
-.ph-name { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink); }
-.ph-weeks { display: block; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.ph-dates { display: block; font-weight: 400; letter-spacing: 0; font-size: 11.5px; }
-.grid th.ph.taper, .grid td.taper { background: var(--accent-soft); }
-.grid th.ph.taper .ph-name { color: var(--accent); }
+/* Zone table */
 .zcell { display: flex; gap: 10px; align-items: flex-start; white-space: nowrap; }
 .zbar { width: 6px; height: 20px; border-radius: 3px; background: var(--zc); flex: none; margin-top: 1px; }
 .zname { font-weight: 700; }
 .ztag { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--muted); margin-left: 5px; }
 .goal-tag { display: inline-block; font: 600 10.5px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 6px; margin-left: 6px; vertical-align: 2px; }
-.grid td.p { text-align: right; font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.grid td.p.same { color: var(--muted); font-weight: 500; }
-.grid td.p.goalpace { color: var(--accent); }
-.grid tr.goalrow td.zone { box-shadow: 1px 0 0 var(--line), inset 3px 0 0 var(--accent); }
-.legend-line { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.legend-line i { font-style: normal; font-family: var(--font-mono); font-weight: 500; }
+.zones thead th { text-transform: uppercase; letter-spacing: 0.1em; }
+.zones th.r, .zones td.r { text-align: right; }
+.zones td.p { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 15.5px; }
+.zones td.effort { color: var(--muted); font-size: 14px; }
+.zones tr.goalrow td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .two { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; }
 @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
@@ -169,7 +160,6 @@ thead th { font-size: 12px; letter-spacing: 0.06em; color: var(--muted); font-we
 .small th.goalcol { color: var(--accent); }
 .small tr.race td { background: var(--accent-soft); }
 .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
-#sp-phase { width: auto; font-size: 14px; padding: 7px 10px; }
 
 footer { color: var(--muted); font-size: 13px; max-width: 80ch; }
 footer p { margin: 0 0 6px; }
@@ -178,9 +168,9 @@ footer p { margin: 0 0 6px; }
   body { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
   .stat .v { font-size: 21px; }
   th, td { padding: 10px 11px; }
-  .grid thead th.ph { min-width: 96px; }
   .zname { font-size: 14px; }
-  .grid td.zone .ztag { display: none; }
+  .zones td.effort { display: none; }
+  .zones th.effort { display: none; }
 }
 </style>
 </head>
@@ -188,8 +178,8 @@ footer p { margin: 0 0 6px; }
 <div class="wrap">
   <header>
     <div>
-      <h1>Pace <span>Progression</span></h1>
-      <p class="sub">Paces that build from where the athlete is today to what the goal race needs. Each phase trains at the fitness they should have by then, so goal paces arrive only once they've been earned.</p>
+      <h1>Pace Zone <span>Calculator</span></h1>
+      <p class="sub">Training paces from a recent race. Enter the goal race to see how far off it is today and whether the timeline is realistic. Race again to update the paces as fitness improves.</p>
     </div>
     <div class="seg" role="group" aria-label="Pace units">
       <button type="button" data-unit="mi" aria-pressed="true">min / mi</button>
@@ -251,35 +241,32 @@ footer p { margin: 0 0 6px; }
 
   <section class="section">
     <div class="section-head">
-      <h2>Paces by phase</h2>
-      <p>Move to the next column only after the athlete hits that phase's checkpoint, or when its workouts feel controlled. If they're behind, stay where they are.</p>
+      <h2>Training paces</h2>
+      <p>Based on current fitness from the recent race.</p>
     </div>
     <div class="table-wrap">
-      <table class="grid">
-        <thead id="grid-head"></thead>
-        <tbody id="grid-body"></tbody>
+      <table class="zones">
+        <thead><tr><th>Zone</th><th class="effort">Effort</th><th class="r" id="z-unit">Pace</th></tr></thead>
+        <tbody id="zones"></tbody>
       </table>
     </div>
-    <div class="legend-line" id="grid-legend"></div>
   </section>
 
   <div class="two">
     <section class="section">
       <div class="section-head">
-        <h2>Checkpoints</h2>
+        <h2>Equivalent race times</h2>
       </div>
-      <p class="sub" style="margin:0;font-size:13.5px">Race times that show the athlete is ready for the next phase. A tune-up race or time trial near each phase end is the cleanest test.</p>
       <div class="table-wrap">
         <table class="small">
-          <thead id="cp-head"></thead>
-          <tbody id="cp-body"></tbody>
+          <thead><tr><th>Race</th><th>Today</th><th class="goalcol">Goal level</th></tr></thead>
+          <tbody id="equiv"></tbody>
         </table>
       </div>
     </section>
     <section class="section">
       <div class="section-head">
         <h2>Track splits</h2>
-        <select id="sp-phase" aria-label="Phase for track splits"></select>
       </div>
       <div class="table-wrap">
         <table class="small">
@@ -291,7 +278,7 @@ footer p { margin: 0 0 6px; }
   </div>
 
   <footer>
-    <p>How it works: the recent race sets today's fitness and the goal time sets the fitness needed on race day. Fitness is planned to improve evenly across the build, reaching goal level by the taper. Each phase trains at the fitness expected at its start, and each checkpoint is the fitness expected at its end.</p>
+    <p>How it works: every pace comes from the recent race, so the zones match current fitness. The goal race is used only for the summary: what the goal race would take today, how much faster the goal is, and whether the time to race day is realistic. "Goal level" race times are the equivalents of the goal time. A recent, all-out race on a flat course gives the best numbers.</p>
     <p>Race paces use Daniels' race-equivalence tables. Threshold runs from halfway between 10K and half marathon pace out to half marathon pace. Steady is 8–13% slower than marathon pace and easy is 20–32% slower. The timeline check is a rule of thumb: up to about 0.3% faster per week is realistic for most trained runners, and over 0.5% is aggressive.</p>
   </footer>
 </div>
@@ -323,14 +310,14 @@ footer p { margin: 0 0 6px; }
   ];
   // Each zone is a slow..fast pace (sec per meter) derived from race paces
   const ZONES = [
-    { key: "easy", name: "Easy", tag: "E", c: "--z1", f: r => [r.full * 1.32, r.full * 1.20] },
-    { key: "steady", name: "Steady", tag: "S", c: "--z2", f: r => [r.full * 1.13, r.full * 1.08] },
-    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", race: "full", f: r => [r.full, r.full] },
-    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", race: "half", f: r => [r.half, r.half] },
-    { key: "thr", name: "Threshold", tag: "T", c: "--z5", f: r => [r.half, (r.half + r.k10) / 2] },
-    { key: "10k", name: "10K", tag: "10K", c: "--z6", race: "10k", f: r => [r.k10, r.k10] },
-    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", race: "5k", f: r => [r.k5, r.k5] },
-    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", race: "mile", f: r => [r.mile, r.mile] }
+    { key: "easy", name: "Easy", tag: "E", c: "--z1", effort: "Conversational, full sentences · RPE 3–4", f: r => [r.full * 1.32, r.full * 1.20] },
+    { key: "steady", name: "Steady", tag: "S", c: "--z2", effort: "Short sentences · RPE 5", f: r => [r.full * 1.13, r.full * 1.08] },
+    { key: "mp", name: "Marathon", tag: "MP", c: "--z3", effort: "RPE 6", race: "full", f: r => [r.full, r.full] },
+    { key: "hmp", name: "Half marathon", tag: "HMP", c: "--z4", effort: "RPE 7", race: "half", f: r => [r.half, r.half] },
+    { key: "thr", name: "Threshold", tag: "T", c: "--z5", effort: "Comfortably hard · RPE 7–8", f: r => [r.half, (r.half + r.k10) / 2] },
+    { key: "10k", name: "10K", tag: "10K", c: "--z6", effort: "RPE 8", race: "10k", f: r => [r.k10, r.k10] },
+    { key: "5k", name: "5K / VO2", tag: "5K", c: "--z7", effort: "RPE 9", race: "5k", f: r => [r.k5, r.k5] },
+    { key: "mile", name: "Mile / strides", tag: "R", c: "--z8", effort: "Fast and relaxed, full recovery", race: "mile", f: r => [r.mile, r.mile] }
   ];
 
   // Daniels & Gilbert race-equivalence model
@@ -351,14 +338,13 @@ footer p { margin: 0 0 6px; }
   const defaultDate = () => isoDate(new Date(today().getTime() + 16 * 7 * DAY));
 
   const state = load() || {
-    unit: "mi", sp: 0,
+    unit: "mi",
     r: { dist: "5k", time: "22:30", cval: "", cunit: "km" },
     g: { dist: "half", time: "1:45:00", cval: "", cunit: "km", date: "" }
   };
-  // Older saved state carried an athlete profile and heart rate; both are gone
-  delete state.k; delete state.profile; delete state.hr;
+  // Older saved state carried an athlete profile, heart rate and a phase choice; all are gone
+  delete state.k; delete state.profile; delete state.hr; delete state.sp;
   if (!state.g.date) state.g.date = defaultDate();
-  if (typeof state.sp !== "number") state.sp = 0;
   function load() { try { const s = JSON.parse(localStorage.getItem("pz-state")); return s && s.r && s.g ? s : null; } catch (e) { return null; } }
   function save() { try { localStorage.setItem("pz-state", JSON.stringify(state)); } catch (e) {} }
 
@@ -368,9 +354,6 @@ footer p { margin: 0 0 6px; }
     return { mile: p("mile"), k5: p("5k"), k10: p("10k"), half: p("half"), full: p("full") };
   };
   const zonesOf = s => { const r = racePaces(s); return ZONES.map(z => z.f(r)); };
-  // Blend two paces at fraction f by speed, so fitness changes evenly
-  const blend = (a, b, f) => 1 / ((1 - f) / a + f / b);
-
 
   const $ = id => document.getElementById(id);
   function fmt(sec, forceH) {
@@ -381,7 +364,6 @@ footer p { margin: 0 0 6px; }
     return h || forceH ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
   }
   const fmtRep = sec => sec < 100 ? Math.round(sec) + " s" : fmt(sec);
-  const fmtDay = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const unitLabel = () => state.unit === "400" ? "400 m" : state.unit;
   function fmtPace(spm) { // sec per meter
     if (state.unit === "400") return fmtRep(spm * 400);
@@ -451,34 +433,17 @@ footer p { margin: 0 0 6px; }
     return { m, t, V };
   }
 
-  // Split the time to race day into ~4-week build phases plus a taper
+
+  // Time to race day; the taper (1–3 weeks by distance) doesn't count as build time
   function plan(goalM) {
-    const t0 = today();
     const [y, mo, d] = (state.g.date || "").split("-").map(Number);
     const race = y ? new Date(y, mo - 1, d) : null;
     if (!race || isNaN(race)) return { error: "Pick a race date." };
-    const days = Math.round((race - t0) / DAY);
+    const days = Math.round((race - today()) / DAY);
     if (days < 1) return { error: "The race date has passed. Pick a future date." };
-    // Work in whole weeks from today; the taper takes the last 1–3 weeks, rounded up to race day
     const totalWeeks = Math.ceil(days / 7);
-    const taperWeeks = Math.min(totalWeeks, goalM >= 40000 ? 3 : goalM >= 20000 ? 2 : 1);
-    const buildWeeks = totalWeeks - taperWeeks, buildDays = buildWeeks * 7;
-    const at = n => new Date(t0.getTime() + n * DAY);
-    const wkRange = (a, b) => a === b ? `Wk ${a}` : `Wk ${a}–${b}`;
-    if (buildWeeks < 3) {
-      return { days, buildDays, short: true, phases: [{ name: "To race day", f: 0, fEnd: 0, taper: false,
-        weeks: wkRange(1, totalWeeks), dates: `${fmtDay(t0)} – ${fmtDay(race)}` }] };
-    }
-    const n = Math.min(6, Math.max(1, Math.round(buildWeeks / 4)));
-    const phases = [];
-    for (let i = 0; i < n; i++) {
-      const a = Math.round(i * buildWeeks / n), b = Math.round((i + 1) * buildWeeks / n);
-      phases.push({ name: `Phase ${i + 1}`, f: i / n, fEnd: (i + 1) / n, taper: false,
-        weeks: wkRange(a + 1, b), dates: `${fmtDay(at(a * 7))} – ${fmtDay(at(b * 7 - 1))}` });
-    }
-    phases.push({ name: "Taper + race", f: 1, fEnd: 1, taper: true,
-      weeks: wkRange(buildWeeks + 1, totalWeeks), dates: `${fmtDay(at(buildDays))} – ${fmtDay(race)}` });
-    return { days, buildDays, short: false, phases };
+    const buildWeeks = totalWeeks - Math.min(totalWeeks, goalM >= 40000 ? 3 : goalM >= 20000 ? 2 : 1);
+    return { days, buildDays: buildWeeks * 7, short: buildWeeks < 3 };
   }
 
   function render() {
@@ -486,14 +451,12 @@ footer p { margin: 0 0 6px; }
     const goalM = goalIn ? goalIn.m : meters("g");
     const P = goalM ? plan(goalM) : { error: "Enter a goal race." };
     const note = $("note"); note.hidden = true;
-    const u = unitLabel();
 
     // Only add the countdown to a valid goal; otherwise leave the time error showing
     if (goalIn && !P.error) $("g-read").innerHTML += ` · <b>${Math.floor(P.days / 7)}</b> wk <b>${P.days % 7}</b> d away`;
     else if (goalIn) $("g-read").textContent = P.error;
 
     // summary
-    let goal = goalIn, behind = true;
     ["s-pred", "s-goal", "s-gap"].forEach(id => $(id).textContent = "–");
     ["s-pred-n", "s-goal-n", "s-gap-n", "s-verdict-n"].forEach(id => $(id).innerHTML = "&nbsp;");
     $("s-pred-n").textContent = "Predicted from the recent race";
@@ -507,11 +470,10 @@ footer p { margin: 0 0 6px; }
       $("s-pred").textContent = fmt(T0, goalIn.m >= 21000);
       $("s-pred-n").textContent = `${fmt(T0 / goalIn.m * MI)}/mi · ${fmt(T0 / goalIn.m * 1000)}/km`;
       if (gain <= 0) {
-        behind = false; goal = now;
         $("s-gap").textContent = "None";
         $("s-gap-n").textContent = `Already ${fmt(-gain * T0)} inside the goal`;
         vEl.textContent = "On target"; vEl.classList.add("ok");
-        $("s-verdict-n").textContent = "Train at current paces throughout";
+        $("s-verdict-n").textContent = "The goal is within current fitness";
       } else {
         $("s-gap").textContent = "−" + fmt(T0 - T1);
         $("s-gap-n").textContent = `${(gain * 100).toFixed(1)}% faster than today`;
@@ -522,75 +484,46 @@ footer p { margin: 0 0 6px; }
           $("s-verdict-n").textContent = P.short ? "Under 3 weeks before the taper" : `${rate.toFixed(2)}% faster per week for ${Math.round(wks)} weeks`;
           if (P.short) {
             note.hidden = false;
-            note.textContent = "There's less than three weeks of build time, which isn't enough to change fitness much. Train at current paces and race by feel.";
+            note.textContent = "There's less than three weeks of build time, which isn't enough to change fitness much. Race by feel at current fitness.";
           } else if (rate > 0.5) {
             const realistic = T0 * (1 - 0.003 * wks);
             note.hidden = false;
-            note.textContent = `This goal asks for ${rate.toFixed(2)}% improvement per week, which few runners sustain. A realistic target for this date is around ${fmt(realistic, goalIn.m >= 21000)}. The plan below still builds toward your goal; watch the checkpoints closely.`;
+            note.textContent = `This goal asks for ${rate.toFixed(2)}% improvement per week, which few runners sustain. A realistic target for this date is around ${fmt(realistic, goalIn.m >= 21000)}. Race again partway through the build to update the paces and check progress.`;
           }
         }
       }
     }
 
-    renderGrid(now, goal, P, behind);
+    renderTables(now, goalIn);
     save();
   }
 
-  function renderGrid(now, goal, P, behind) {
-    const head = $("grid-head"), body = $("grid-body");
-    const cpHead = $("cp-head"), cpBody = $("cp-body"), spl = $("splits"), spSel = $("sp-phase");
-    if (!now || P.error) {
-      head.innerHTML = ""; cpHead.innerHTML = ""; cpBody.innerHTML = ""; spl.innerHTML = ""; spSel.innerHTML = "";
-      body.innerHTML = `<tr><td style="padding:22px 16px;color:var(--muted)">${!now ? "Enter a recent race result to build the plan." : P.error}</td></tr>`;
-      $("grid-legend").textContent = "";
+
+  function renderTables(now, goal) {
+    const goalRace = state.g.dist;
+    $("z-unit").textContent = `Pace /${unitLabel()}`;
+    if (!now) {
+      $("zones").innerHTML = `<tr><td colspan="3" style="padding:22px 16px;color:var(--muted)">Enter a recent race result to see the paces.</td></tr>`;
+      $("equiv").innerHTML = ""; $("splits").innerHTML = "";
       return;
     }
-    const g = goal || now;
-    const Z0 = zonesOf(now), Z1 = g === now ? Z0 : zonesOf(g);
-    const phases = P.phases;
-    const goalRace = state.g.dist;
-
-    head.innerHTML = `<tr><th class="zone">Zone</th>${phases.map(p => `
-      <th class="ph ${p.taper ? "taper" : ""}"><span class="ph-name">${p.name}</span><span class="ph-weeks">${p.weeks}</span><span class="ph-dates">${p.dates}</span></th>`).join("")}</tr>`;
-
-    body.innerHTML = ZONES.map((z, i) => {
-      const isGoal = z.race && z.race === goalRace && goal;
-      let prev = null;
-      const cells = phases.map(p => {
-        const slow = blend(Z0[i][0], Z1[i][0], p.f), fast = blend(Z0[i][1], Z1[i][1], p.f);
-        const txt = fmtRange(slow, fast);
-        const same = prev !== null && prev === txt;
-        prev = txt;
-        const cls = ["p", p.taper ? "taper" : "", same ? "same" : "", isGoal && p.taper ? "goalpace" : ""].join(" ");
-        return `<td class="${cls}">${txt}</td>`;
-      }).join("");
+    const Z = zonesOf(now);
+    $("zones").innerHTML = ZONES.map((z, i) => {
+      const isGoal = z.race && z.race === goalRace;
       return `<tr class="${isGoal ? "goalrow" : ""}" style="--zc: var(${z.c})">
-        <td class="zone"><div class="zcell"><i class="zbar"></i><span><span class="zname">${z.name}</span><span class="ztag">${z.tag}</span>${isGoal ? '<span class="goal-tag">Goal race</span>' : ""}</span></div></td>${cells}</tr>`;
+        <td><div class="zcell"><i class="zbar"></i><span><span class="zname">${z.name}</span><span class="ztag">${z.tag}</span>${isGoal ? '<span class="goal-tag">Goal race</span>' : ""}</span></div></td>
+        <td class="effort">${z.effort}</td>
+        <td class="p r">${fmtRange(Z[i][0], Z[i][1])}</td></tr>`;
     }).join("");
 
-    $("grid-legend").innerHTML = `<span>Paces per <i>${unitLabel()}</i>.</span>` +
-      (behind && goal ? `<span>Grey means no change from the phase before.</span>` : `<span>The goal is within current fitness, so paces stay the same.</span>`);
+    $("equiv").innerHTML = CHECK.map(id => {
+      const d = dist(id), longish = d.m >= 21000;
+      return `<tr class="${id === goalRace ? "race" : ""}"><td><b>${d.label}</b></td><td>${fmt(predictFrom(d.m, now), longish)}</td>
+        <td class="goalcol">${goal ? fmt(predictFrom(d.m, goal), longish) : "–"}</td></tr>`;
+    }).join("");
 
-    // checkpoints: equivalent race times at each phase end
-    const eq0 = CHECK.map(id => predictFrom(dist(id).m, now)), eq1 = CHECK.map(id => predictFrom(dist(id).m, g));
-    cpHead.innerHTML = `<tr><th>When</th>${CHECK.map(id => `<th class="${id === goalRace ? "goalcol" : ""}">${dist(id).id === "half" ? "Half" : dist(id).label}</th>`).join("")}</tr>`;
-    const rows = [{ label: "Today", sub: "Current fitness", f: 0 }];
-    phases.filter(p => !p.taper).forEach((p, i, arr) => {
-      if (P.short) return;
-      const last = i === arr.length - 1;
-      rows.push({ label: `End of ${p.name.toLowerCase()}`, sub: p.dates.split(" – ")[1], f: p.fEnd, race: false, last });
-    });
-    if (!P.short) { const r = rows[rows.length - 1]; rows[rows.length - 1] = { ...r, sub: `${r.sub} · goal fitness`, race: true }; }
-    cpBody.innerHTML = rows.map(r => `<tr class="${r.race ? "race" : ""}"><td><b>${r.label}</b>${r.sub}</td>${CHECK.map((id, j) =>
-      `<td class="${id === goalRace ? "goalcol" : ""}">${fmt(blend(eq0[j], eq1[j], r.f), dist(id).m >= 21000)}</td>`).join("")}</tr>`).join("");
-
-    // splits for the chosen phase
-    const prevSel = Math.min(state.sp, phases.length - 1);
-    spSel.innerHTML = phases.map((p, i) => `<option value="${i}">${p.name} · ${p.weeks}</option>`).join("");
-    spSel.value = String(prevSel);
-    const ph = phases[prevSel];
-    const mid = key => { const i = ZONES.findIndex(z => z.key === key); return (blend(Z0[i][0], Z1[i][0], ph.f) + blend(Z0[i][1], Z1[i][1], ph.f)) / 2; };
-    spl.innerHTML = SPLITS.map(s => `<tr><td>${s.label}</td>${["thr", "10k", "5k", "mile"].map(key => `<td>${fmtRep(mid(key) * s.m)}</td>`).join("")}</tr>`).join("");
+    const mid = key => { const i = ZONES.findIndex(z => z.key === key); return (Z[i][0] + Z[i][1]) / 2; };
+    $("splits").innerHTML = SPLITS.map(s => `<tr><td>${s.label}</td>${["thr", "10k", "5k", "mile"].map(key => `<td>${fmtRep(mid(key) * s.m)}</td>`).join("")}</tr>`).join("");
   }
 
   // wire up
@@ -614,7 +547,6 @@ footer p { margin: 0 0 6px; }
   });
   $("g-date").value = state.g.date;
   $("g-date").addEventListener("change", e => { state.g.date = e.target.value; render(); });
-  $("sp-phase").addEventListener("change", e => { state.sp = Number(e.target.value); render(); });
 
   function setPressed(attr, val) {
     document.querySelectorAll(`[data-${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset[attr] === val)));
